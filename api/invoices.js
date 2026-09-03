@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { connectToDatabase } from './db.js';
 import { Invoice } from './models.js';
 
@@ -13,7 +14,7 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const data = req.body;
       let invoice;
-      if (data._id) {
+      if (data._id && mongoose.Types.ObjectId.isValid(data._id)) {
         invoice = await Invoice.findByIdAndUpdate(data._id, data, { new: true });
       } else {
         invoice = await Invoice.findOneAndUpdate(
@@ -27,8 +28,14 @@ export default async function handler(req, res) {
 
     if (req.method === 'DELETE') {
       const { id } = req.query;
-      await Invoice.findByIdAndDelete(id);
-      return res.status(200).json({ success: true });
+      if (!id) return res.status(400).json({ error: 'Missing ID' });
+
+      if (mongoose.Types.ObjectId.isValid(id)) {
+        await Invoice.findByIdAndDelete(id);
+      } else {
+        await Invoice.findOneAndDelete({ invoiceNumber: id });
+      }
+      return res.status(200).json({ success: true, deletedId: id });
     }
 
     res.setHeader('Allow', ['GET', 'POST', 'DELETE']);

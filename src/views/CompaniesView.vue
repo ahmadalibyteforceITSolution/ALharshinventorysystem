@@ -101,7 +101,7 @@
           </button>
           <button
             v-if="!company.isDefault"
-            @click="deleteCompany(company._id || company.id)"
+            @click="promptDeleteCompany(company)"
             class="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-slate-800"
             title="Delete Brand"
           >
@@ -246,6 +246,21 @@
         </form>
       </div>
     </div>
+
+    <!-- Confirm Delete Modal (Replaces browser alert/confirm) -->
+    <ConfirmModal
+      :is-open="isDeleteModalOpen"
+      title="Delete Brand"
+      message="Are you sure you want to delete this brand? All catalog prices associated with this brand will be removed."
+      :item-name="companyToDelete ? companyToDelete.name : ''"
+      confirm-text="Delete Brand"
+      :is-deleting="isDeleting"
+      @confirm="confirmDeleteCompany"
+      @cancel="isDeleteModalOpen = false"
+    />
+
+    <!-- Toast Feedback -->
+    <AppToast ref="toastRef" />
   </div>
 </template>
 
@@ -253,9 +268,12 @@
 import { ref, reactive, computed } from 'vue';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import AppPagination from '@/components/common/AppPagination.vue';
+import ConfirmModal from '@/components/common/ConfirmModal.vue';
+import AppToast from '@/components/common/AppToast.vue';
 import { Plus, Trash2, X, Upload, Image as ImageIcon, Building2 } from 'lucide-vue-next';
 
 const inventoryStore = useInventoryStore();
+const toastRef = ref(null);
 
 // Pagination State
 const currentPage = ref(1);
@@ -265,6 +283,32 @@ const paginatedCompanies = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value;
   return inventoryStore.companies.slice(start, start + pageSize.value);
 });
+
+// Delete Modal State
+const isDeleteModalOpen = ref(false);
+const companyToDelete = ref(null);
+const isDeleting = ref(false);
+
+const promptDeleteCompany = (comp) => {
+  companyToDelete.value = comp;
+  isDeleteModalOpen.value = true;
+};
+
+const confirmDeleteCompany = async () => {
+  if (!companyToDelete.value) return;
+  isDeleting.value = true;
+  try {
+    const id = companyToDelete.value._id || companyToDelete.value.id;
+    const name = companyToDelete.value.name;
+    await inventoryStore.deleteCompany(id);
+    isDeleteModalOpen.value = false;
+    toastRef.value?.showToast(`Deleted ${name} successfully`, 'success');
+  } catch (err) {
+    toastRef.value?.showToast(`Failed to delete: ${err.message}`, 'error');
+  } finally {
+    isDeleting.value = false;
+  }
+};
 
 const isModalOpen = ref(false);
 const form = reactive({
@@ -285,19 +329,20 @@ const handleLogoUpload = (event) => {
   if (!file) return;
 
   if (!file.type.startsWith('image/')) {
-    alert('Please upload an image file (PNG, JPG, WEBP, SVG).');
+    toastRef.value?.showToast('Please upload an image file (PNG, JPG, WEBP, SVG).', 'error');
     return;
   }
 
   // Max 2MB check
   if (file.size > 2 * 1024 * 1024) {
-    alert('Image file size should be less than 2MB.');
+    toastRef.value?.showToast('Image file size should be less than 2MB.', 'error');
     return;
   }
 
   const reader = new FileReader();
   reader.onload = (e) => {
     form.logo = e.target.result;
+    toastRef.value?.showToast('Logo loaded into preview', 'success');
   };
   reader.readAsDataURL(file);
 };
@@ -331,13 +376,12 @@ const editCompany = (company) => {
 };
 
 const saveCompany = async () => {
-  await inventoryStore.saveCompany({ ...form });
-  isModalOpen.value = false;
-};
-
-const deleteCompany = async (id) => {
-  if (confirm('Delete this company and associated prices?')) {
-    await inventoryStore.deleteCompany(id);
+  try {
+    await inventoryStore.saveCompany({ ...form });
+    isModalOpen.value = false;
+    toastRef.value?.showToast(`Saved brand ${form.name} successfully`, 'success');
+  } catch (err) {
+    toastRef.value?.showToast(`Failed to save: ${err.message}`, 'error');
   }
 };
 </script>

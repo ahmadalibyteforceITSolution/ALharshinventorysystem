@@ -128,7 +128,7 @@
                     <Edit3 class="h-4 w-4" />
                   </router-link>
                   <button
-                    @click="deleteInvoice(inv.id)"
+                    @click="promptDeleteInvoice(inv)"
                     title="Delete"
                     class="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-slate-800"
                   >
@@ -160,6 +160,21 @@
       :invoice="selectedInvoiceForPrint"
       @close="isPrintModalOpen = false"
     />
+
+    <!-- Confirm Delete Modal -->
+    <ConfirmModal
+      :is-open="isDeleteModalOpen"
+      title="Delete Invoice"
+      message="Are you sure you want to delete this invoice? This action will permanently remove it from database records."
+      :item-name="invoiceToDelete ? `${invoiceToDelete.invoiceNumber} (${invoiceToDelete.customerName})` : ''"
+      confirm-text="Delete Invoice"
+      :is-deleting="isDeleting"
+      @confirm="confirmDeleteInvoice"
+      @cancel="isDeleteModalOpen = false"
+    />
+
+    <!-- Toast Feedback -->
+    <AppToast ref="toastRef" />
   </div>
 </template>
 
@@ -167,10 +182,13 @@
 import { ref, computed, watch } from 'vue';
 import { useInvoiceStore } from '@/stores/invoiceStore';
 import AppPagination from '@/components/common/AppPagination.vue';
+import ConfirmModal from '@/components/common/ConfirmModal.vue';
+import AppToast from '@/components/common/AppToast.vue';
 import InvoicePrintModal from '@/components/invoice/InvoicePrintModal.vue';
 import { Plus, Search, Printer, Edit3, Trash2, Receipt, FileSpreadsheet } from 'lucide-vue-next';
 
 const invoiceStore = useInvoiceStore();
+const toastRef = ref(null);
 const searchQuery = ref('');
 const statusFilter = ref('all');
 
@@ -180,6 +198,32 @@ const pageSize = ref(10);
 
 const isPrintModalOpen = ref(false);
 const selectedInvoiceForPrint = ref(null);
+
+// Delete Modal State
+const isDeleteModalOpen = ref(false);
+const invoiceToDelete = ref(null);
+const isDeleting = ref(false);
+
+const promptDeleteInvoice = (inv) => {
+  invoiceToDelete.value = inv;
+  isDeleteModalOpen.value = true;
+};
+
+const confirmDeleteInvoice = async () => {
+  if (!invoiceToDelete.value) return;
+  isDeleting.value = true;
+  try {
+    const id = invoiceToDelete.value._id || invoiceToDelete.value.id;
+    const invNum = invoiceToDelete.value.invoiceNumber;
+    await invoiceStore.deleteInvoice(id);
+    isDeleteModalOpen.value = false;
+    toastRef.value?.showToast(`Deleted invoice ${invNum} successfully`, 'success');
+  } catch (err) {
+    toastRef.value?.showToast(`Failed to delete: ${err.message}`, 'error');
+  } finally {
+    isDeleting.value = false;
+  }
+};
 
 const filteredInvoices = computed(() => {
   return invoiceStore.finalInvoices.filter(inv => {
@@ -207,12 +251,6 @@ const previewInvoice = (inv) => {
   isPrintModalOpen.value = true;
 };
 
-const deleteInvoice = async (id) => {
-  if (confirm('Are you sure you want to delete this invoice?')) {
-    await invoiceStore.deleteInvoice(id);
-  }
-};
-
 const exportToExcel = async () => {
   try {
     const xlsxModule = await import('xlsx');
@@ -233,8 +271,9 @@ const exportToExcel = async () => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Invoices');
     XLSX.writeFile(workbook, 'Al-Harsh-Invoices.xlsx');
+    toastRef.value?.showToast('Exported invoices to Excel successfully', 'success');
   } catch (err) {
-    console.error('Failed to export Excel:', err);
+    toastRef.value?.showToast(`Failed to export: ${err.message}`, 'error');
   }
 };
 </script>

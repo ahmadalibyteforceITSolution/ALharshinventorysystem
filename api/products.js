@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { connectToDatabase } from './db.js';
 import { Product } from './models.js';
 
@@ -14,7 +15,7 @@ export default async function handler(req, res) {
       const { commonCode, name, categoryId, categoryName, description, unit, stockQty, prices, _id } = req.body;
       
       let product;
-      if (_id) {
+      if (_id && mongoose.Types.ObjectId.isValid(_id)) {
         product = await Product.findByIdAndUpdate(
           _id,
           { commonCode, name, categoryId, categoryName, description, unit, stockQty, prices },
@@ -32,8 +33,17 @@ export default async function handler(req, res) {
 
     if (req.method === 'DELETE') {
       const { id } = req.query;
-      await Product.findByIdAndDelete(id);
-      return res.status(200).json({ success: true });
+      if (!id) {
+        return res.status(400).json({ error: 'Missing product ID or commonCode' });
+      }
+
+      // Delete only this specific product by ObjectId or commonCode
+      if (mongoose.Types.ObjectId.isValid(id)) {
+        await Product.findByIdAndDelete(id);
+      } else {
+        await Product.findOneAndDelete({ commonCode: id });
+      }
+      return res.status(200).json({ success: true, deletedId: id });
     }
 
     res.setHeader('Allow', ['GET', 'POST', 'DELETE']);

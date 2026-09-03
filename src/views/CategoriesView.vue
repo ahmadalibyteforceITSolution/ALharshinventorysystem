@@ -68,7 +68,7 @@
               Edit
             </button>
             <button
-              @click="deleteCategory(category.id || category._id)"
+              @click="promptDeleteCategory(category)"
               class="text-xs font-semibold text-rose-500 hover:text-rose-700"
             >
               Delete
@@ -140,6 +140,21 @@
         </form>
       </div>
     </div>
+
+    <!-- Confirm Delete Modal -->
+    <ConfirmModal
+      :is-open="isDeleteModalOpen"
+      title="Delete Category"
+      message="Are you sure you want to delete this category? Associated products may be categorized as General."
+      :item-name="categoryToDelete ? categoryToDelete.name : ''"
+      confirm-text="Delete Category"
+      :is-deleting="isDeleting"
+      @confirm="confirmDeleteCategory"
+      @cancel="isDeleteModalOpen = false"
+    />
+
+    <!-- Toast Feedback -->
+    <AppToast ref="toastRef" />
   </div>
 </template>
 
@@ -147,9 +162,12 @@
 import { ref, reactive, computed } from 'vue';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import AppPagination from '@/components/common/AppPagination.vue';
+import ConfirmModal from '@/components/common/ConfirmModal.vue';
+import AppToast from '@/components/common/AppToast.vue';
 import { FolderTree, Plus, X } from 'lucide-vue-next';
 
 const inventoryStore = useInventoryStore();
+const toastRef = ref(null);
 
 // Pagination State
 const currentPage = ref(1);
@@ -160,20 +178,48 @@ const paginatedCategories = computed(() => {
   return inventoryStore.categories.slice(start, start + pageSize.value);
 });
 
+// Delete Modal State
+const isDeleteModalOpen = ref(false);
+const categoryToDelete = ref(null);
+const isDeleting = ref(false);
+
+const promptDeleteCategory = (cat) => {
+  categoryToDelete.value = cat;
+  isDeleteModalOpen.value = true;
+};
+
+const confirmDeleteCategory = async () => {
+  if (!categoryToDelete.value) return;
+  isDeleting.value = true;
+  try {
+    const id = categoryToDelete.value._id || categoryToDelete.value.id;
+    const name = categoryToDelete.value.name;
+    await inventoryStore.deleteCategory(id);
+    isDeleteModalOpen.value = false;
+    toastRef.value?.showToast(`Deleted category ${name} successfully`, 'success');
+  } catch (err) {
+    toastRef.value?.showToast(`Failed to delete: ${err.message}`, 'error');
+  } finally {
+    isDeleting.value = false;
+  }
+};
+
 const isModalOpen = ref(false);
 const form = reactive({
   id: null,
+  _id: null,
   name: '',
   description: '',
   slug: ''
 });
 
 const getItemCount = (catId) => {
-  return inventoryStore.products.filter(p => p.categoryId === catId).length;
+  return inventoryStore.products.filter(p => p.categoryId === catId || p.categoryId === catId?._id).length;
 };
 
 const openAddModal = () => {
   form.id = null;
+  form._id = null;
   form.name = '';
   form.description = '';
   form.slug = '';
@@ -182,6 +228,7 @@ const openAddModal = () => {
 
 const editCategory = (cat) => {
   form.id = cat.id;
+  form._id = cat._id;
   form.name = cat.name;
   form.description = cat.description || '';
   form.slug = cat.slug || '';
@@ -189,14 +236,13 @@ const editCategory = (cat) => {
 };
 
 const saveCategory = async () => {
-  form.slug = form.name.toLowerCase().replace(/\s+/g, '-');
-  await inventoryStore.saveCategory({ ...form });
-  isModalOpen.value = false;
-};
-
-const deleteCategory = async (id) => {
-  if (confirm('Are you sure you want to delete this category?')) {
-    await inventoryStore.deleteCategory(id);
+  try {
+    form.slug = form.name.toLowerCase().replace(/\s+/g, '-');
+    await inventoryStore.saveCategory({ ...form });
+    isModalOpen.value = false;
+    toastRef.value?.showToast(`Saved category ${form.name} successfully`, 'success');
+  } catch (err) {
+    toastRef.value?.showToast(`Failed to save: ${err.message}`, 'error');
   }
 };
 </script>

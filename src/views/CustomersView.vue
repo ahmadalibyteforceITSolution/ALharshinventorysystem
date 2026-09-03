@@ -78,7 +78,7 @@
               Edit
             </button>
             <button
-              @click="deleteCustomer(customer.id || customer._id)"
+              @click="promptDeleteCustomer(customer)"
               class="text-xs font-semibold text-rose-500 hover:text-rose-700"
             >
               Delete
@@ -177,6 +177,21 @@
         </form>
       </div>
     </div>
+
+    <!-- Confirm Delete Modal -->
+    <ConfirmModal
+      :is-open="isDeleteModalOpen"
+      title="Delete Customer"
+      message="Are you sure you want to delete this customer? This will remove their contact details from the customer directory."
+      :item-name="customerToDelete ? `${customerToDelete.name} (${customerToDelete.companyName || 'Contractor'})` : ''"
+      confirm-text="Delete Customer"
+      :is-deleting="isDeleting"
+      @confirm="confirmDeleteCustomer"
+      @cancel="isDeleteModalOpen = false"
+    />
+
+    <!-- Toast Feedback -->
+    <AppToast ref="toastRef" />
   </div>
 </template>
 
@@ -186,11 +201,14 @@ import { useRouter } from 'vue-router';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { useInvoiceStore } from '@/stores/invoiceStore';
 import AppPagination from '@/components/common/AppPagination.vue';
+import ConfirmModal from '@/components/common/ConfirmModal.vue';
+import AppToast from '@/components/common/AppToast.vue';
 import { Plus, Phone, Mail, MapPin, ArrowRight, X } from 'lucide-vue-next';
 
 const router = useRouter();
 const inventoryStore = useInventoryStore();
 const invoiceStore = useInvoiceStore();
+const toastRef = ref(null);
 
 // Pagination State
 const currentPage = ref(1);
@@ -205,9 +223,36 @@ const paginatedCustomers = computed(() => {
   return filteredCustomers.value.slice(start, start + pageSize.value);
 });
 
+// Delete Modal State
+const isDeleteModalOpen = ref(false);
+const customerToDelete = ref(null);
+const isDeleting = ref(false);
+
+const promptDeleteCustomer = (cust) => {
+  customerToDelete.value = cust;
+  isDeleteModalOpen.value = true;
+};
+
+const confirmDeleteCustomer = async () => {
+  if (!customerToDelete.value) return;
+  isDeleting.value = true;
+  try {
+    const id = customerToDelete.value._id || customerToDelete.value.id;
+    const name = customerToDelete.value.name;
+    await inventoryStore.deleteCustomer(id);
+    isDeleteModalOpen.value = false;
+    toastRef.value?.showToast(`Deleted customer ${name} successfully`, 'success');
+  } catch (err) {
+    toastRef.value?.showToast(`Failed to delete: ${err.message}`, 'error');
+  } finally {
+    isDeleting.value = false;
+  }
+};
+
 const isModalOpen = ref(false);
 const form = reactive({
   id: null,
+  _id: null,
   name: '',
   companyName: '',
   phone: '',
@@ -217,6 +262,7 @@ const form = reactive({
 
 const openAddModal = () => {
   form.id = null;
+  form._id = null;
   form.name = '';
   form.companyName = '';
   form.phone = '';
@@ -227,6 +273,7 @@ const openAddModal = () => {
 
 const editCustomer = (c) => {
   form.id = c.id;
+  form._id = c._id;
   form.name = c.name;
   form.companyName = c.companyName || '';
   form.phone = c.phone || '';
@@ -236,8 +283,13 @@ const editCustomer = (c) => {
 };
 
 const saveCustomer = async () => {
-  await inventoryStore.saveCustomer({ ...form });
-  isModalOpen.value = false;
+  try {
+    await inventoryStore.saveCustomer({ ...form });
+    isModalOpen.value = false;
+    toastRef.value?.showToast(`Saved customer ${form.name} successfully`, 'success');
+  } catch (err) {
+    toastRef.value?.showToast(`Failed to save: ${err.message}`, 'error');
+  }
 };
 
 const createBillForCustomer = (customer) => {
@@ -246,11 +298,5 @@ const createBillForCustomer = (customer) => {
   invoiceStore.activeInvoice.customerContact = customer.phone || '';
   invoiceStore.activeInvoice.customerAddress = customer.address || '';
   router.push('/invoices/create');
-};
-
-const deleteCustomer = async (id) => {
-  if (confirm('Are you sure you want to delete this customer?')) {
-    await inventoryStore.deleteCustomer(id);
-  }
 };
 </script>

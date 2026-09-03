@@ -214,12 +214,17 @@ export const useInventoryStore = defineStore('inventory', {
 
     async deleteProduct(id) {
       const prod = this.products.find(p => p._id === id || p.id === id);
-      if (prod) {
-        this.companyPrices = this.companyPrices.filter(cp => cp.commonCode !== prod.commonCode);
-      }
-      this.products = this.products.filter(p => p._id !== id && p.id !== id);
+      const codeToDelete = prod ? prod.commonCode : null;
+      const dbId = prod?._id || codeToDelete || id;
 
-      const dbId = prod?._id || id;
+      // Remove strictly this specific product from state
+      this.products = this.products.filter(p => p._id !== id && p.id !== id && (!codeToDelete || p.commonCode !== codeToDelete));
+
+      // Remove strictly this specific product's prices
+      if (codeToDelete) {
+        this.companyPrices = this.companyPrices.filter(cp => cp.commonCode !== codeToDelete);
+      }
+
       try {
         await api.deleteProduct(dbId);
       } catch (err) {

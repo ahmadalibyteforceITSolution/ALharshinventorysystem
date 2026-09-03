@@ -187,7 +187,7 @@
                     <Edit3 class="h-3.5 w-3.5" />
                   </button>
                   <button
-                    @click="deleteProduct(prod._id || prod.id)"
+                    @click="promptDeleteProduct(prod)"
                     class="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-slate-800"
                     title="Delete Product"
                   >
@@ -348,6 +348,21 @@
         </form>
       </div>
     </div>
+
+    <!-- Confirm Delete Modal (Replaces browser confirm/alert) -->
+    <ConfirmModal
+      :is-open="isDeleteModalOpen"
+      title="Delete Product"
+      message="Are you sure you want to delete this product? All multi-brand prices for this common code will be permanently removed from the database."
+      :item-name="productToDelete ? `${productToDelete.commonCode} - ${productToDelete.name}` : ''"
+      confirm-text="Delete Product"
+      :is-deleting="isDeleting"
+      @confirm="confirmDeleteProduct"
+      @cancel="isDeleteModalOpen = false"
+    />
+
+    <!-- Toast Notification (Replaces browser alert) -->
+    <AppToast ref="toastRef" />
   </div>
 </template>
 
@@ -355,9 +370,12 @@
 import { ref, reactive, computed, watch } from 'vue';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import AppPagination from '@/components/common/AppPagination.vue';
+import ConfirmModal from '@/components/common/ConfirmModal.vue';
+import AppToast from '@/components/common/AppToast.vue';
 import { Plus, Search, Edit3, Trash2, Package, X, Download, Upload, FileSpreadsheet } from 'lucide-vue-next';
 
 const inventoryStore = useInventoryStore();
+const toastRef = ref(null);
 
 // Pagination State
 const currentPage = ref(1);
@@ -371,6 +389,32 @@ const paginatedProducts = computed(() => {
 watch(() => [inventoryStore.searchQuery, inventoryStore.selectedCategoryFilter], () => {
   currentPage.value = 1;
 });
+
+// Delete Modal State
+const isDeleteModalOpen = ref(false);
+const productToDelete = ref(null);
+const isDeleting = ref(false);
+
+const promptDeleteProduct = (prod) => {
+  productToDelete.value = prod;
+  isDeleteModalOpen.value = true;
+};
+
+const confirmDeleteProduct = async () => {
+  if (!productToDelete.value) return;
+  isDeleting.value = true;
+  try {
+    const id = productToDelete.value._id || productToDelete.value.id;
+    const name = productToDelete.value.name;
+    await inventoryStore.deleteProduct(id);
+    isDeleteModalOpen.value = false;
+    toastRef.value?.showToast(`Deleted ${name} successfully`, 'success');
+  } catch (err) {
+    toastRef.value?.showToast(`Failed to delete: ${err.message}`, 'error');
+  } finally {
+    isDeleting.value = false;
+  }
+};
 
 const isModalOpen = ref(false);
 const editForm = reactive({
@@ -420,13 +464,12 @@ const editProduct = (product) => {
 };
 
 const saveProduct = async () => {
-  await inventoryStore.saveProduct({ ...editForm }, editPrices);
-  isModalOpen.value = false;
-};
-
-const deleteProduct = async (id) => {
-  if (confirm('Delete this product and its multi-brand price entries?')) {
-    await inventoryStore.deleteProduct(id);
+  try {
+    await inventoryStore.saveProduct({ ...editForm }, editPrices);
+    isModalOpen.value = false;
+    toastRef.value?.showToast(`Saved product ${editForm.name} successfully`, 'success');
+  } catch (err) {
+    toastRef.value?.showToast(`Failed to save: ${err.message}`, 'error');
   }
 };
 
@@ -455,8 +498,9 @@ const exportProductsExcel = async () => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Products');
     XLSX.writeFile(workbook, 'Al-Harsh-Products.xlsx');
+    toastRef.value?.showToast('Exported products to Excel successfully', 'success');
   } catch (err) {
-    alert('Failed to export products: ' + err.message);
+    toastRef.value?.showToast('Failed to export products: ' + err.message, 'error');
   }
 };
 
@@ -480,8 +524,9 @@ const downloadTemplate = async () => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Import_Template');
     XLSX.writeFile(workbook, 'Product-Import-Template.xlsx');
+    toastRef.value?.showToast('Downloaded sample template', 'success');
   } catch (err) {
-    alert('Failed to download template: ' + err.message);
+    toastRef.value?.showToast('Failed to download template: ' + err.message, 'error');
   }
 };
 
@@ -501,7 +546,7 @@ const handleImportExcel = async (event) => {
         const rows = XLSX.utils.sheet_to_json(firstSheet);
 
         if (!rows || rows.length === 0) {
-          alert('The uploaded file is empty.');
+          toastRef.value?.showToast('The uploaded file is empty.', 'error');
           return;
         }
 
@@ -537,15 +582,15 @@ const handleImportExcel = async (event) => {
           importedCount++;
         }
 
-        alert(`Successfully imported ${importedCount} product(s) into database!`);
+        toastRef.value?.showToast(`Successfully imported ${importedCount} product(s) into database!`, 'success');
         event.target.value = '';
       } catch (innerErr) {
-        alert('Error parsing Excel: ' + innerErr.message);
+        toastRef.value?.showToast('Error parsing Excel: ' + innerErr.message, 'error');
       }
     };
     reader.readAsArrayBuffer(file);
   } catch (err) {
-    alert('Import failed: ' + err.message);
+    toastRef.value?.showToast('Import failed: ' + err.message, 'error');
   }
 };
 </script>
