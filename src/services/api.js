@@ -39,6 +39,7 @@ export const api = {
     }
   },
 
+  // 1. PRODUCTS
   async getProducts() {
     try {
       const res = await fetch(getEndpoint('/api/products'));
@@ -46,7 +47,7 @@ export const api = {
     } catch (e) {
       console.warn('API getProducts fallback');
     }
-    return null;
+    return [];
   },
 
   async saveProduct(product) {
@@ -71,6 +72,7 @@ export const api = {
     }
   },
 
+  // 2. COMPANIES / BRANDS
   async getCompanies() {
     try {
       const res = await fetch(getEndpoint('/api/companies'));
@@ -78,7 +80,7 @@ export const api = {
     } catch (e) {
       console.warn('API getCompanies fallback');
     }
-    return null;
+    return [];
   },
 
   async saveCompany(company) {
@@ -93,6 +95,25 @@ export const api = {
       console.warn('API saveCompany fallback');
     }
     return null;
+  },
+
+  async deleteCompany(id) {
+    try {
+      await fetch(getEndpoint(`/api/companies?id=${id}`), { method: 'DELETE' });
+    } catch (e) {
+      console.warn('API deleteCompany fallback');
+    }
+  },
+
+  // 3. CATEGORIES
+  async getCategories() {
+    try {
+      const res = await fetch(getEndpoint('/api/categories'));
+      if (res.ok) return await res.json();
+    } catch (e) {
+      console.warn('API getCategories fallback');
+    }
+    return [];
   },
 
   async saveCategory(category) {
@@ -117,6 +138,7 @@ export const api = {
     }
   },
 
+  // 4. INVOICES
   async getInvoices() {
     try {
       const res = await fetch(getEndpoint('/api/invoices'));
@@ -124,7 +146,7 @@ export const api = {
     } catch (e) {
       console.warn('API getInvoices fallback');
     }
-    return null;
+    return [];
   },
 
   async saveInvoice(invoice) {
@@ -149,6 +171,7 @@ export const api = {
     }
   },
 
+  // 5. CUSTOMERS
   async getCustomers() {
     try {
       const res = await fetch(getEndpoint('/api/customers'));
@@ -156,7 +179,7 @@ export const api = {
     } catch (e) {
       console.warn('API getCustomers fallback');
     }
-    return null;
+    return [];
   },
 
   async saveCustomer(customer) {
@@ -171,5 +194,13 @@ export const api = {
       console.warn('API saveCustomer fallback');
     }
     return null;
+  },
+
+  async deleteCustomer(id) {
+    try {
+      await fetch(getEndpoint(`/api/customers?id=${id}`), { method: 'DELETE' });
+    } catch (e) {
+      console.warn('API deleteCustomer fallback');
+    }
   }
 };
