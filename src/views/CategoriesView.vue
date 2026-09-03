@@ -20,10 +20,18 @@
     </div>
 
     <!-- Category Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div v-if="inventoryStore.categories.length === 0" class="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 p-12 text-center">
+      <h3 class="text-base font-bold text-slate-900 dark:text-white">No Categories Added Yet</h3>
+      <p class="text-xs text-slate-500 mt-1 mb-4">Add categories like Sanitary, Electrical, or Hardware.</p>
+      <button @click="openAddModal" class="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-500">
+        Add First Category
+      </button>
+    </div>
+
+    <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <div
-        v-for="category in inventoryStore.categories"
-        :key="category.id"
+        v-for="category in paginatedCategories"
+        :key="category.id || category._id"
         class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 flex flex-col justify-between"
       >
         <div>
@@ -68,6 +76,17 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Pagination Controls -->
+    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 px-4 mt-6">
+      <AppPagination
+        v-model="currentPage"
+        v-model:pageSize="pageSize"
+        :totalItems="inventoryStore.categories.length"
+        :pageSize="pageSize"
+        :pageSizeOptions="[6, 9, 18, 36]"
+      />
     </div>
 
     <!-- Add/Edit Category Modal -->
@@ -125,11 +144,21 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import { useInventoryStore } from '@/stores/inventoryStore';
+import AppPagination from '@/components/common/AppPagination.vue';
 import { FolderTree, Plus, X } from 'lucide-vue-next';
 
 const inventoryStore = useInventoryStore();
+
+// Pagination State
+const currentPage = ref(1);
+const pageSize = ref(9);
+
+const paginatedCategories = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return inventoryStore.categories.slice(start, start + pageSize.value);
+});
 
 const isModalOpen = ref(false);
 const form = reactive({

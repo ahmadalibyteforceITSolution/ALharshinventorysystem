@@ -68,8 +68,8 @@
         </div>
 
         <div
-          v-for="product in filteredList"
-          :key="product.id"
+          v-for="product in paginatedList"
+          :key="product.id || product._id || product.commonCode"
           class="group py-4 first:pt-0 last:pb-0 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/30 px-3 rounded-xl"
         >
           <!-- Product Info -->
@@ -97,34 +97,38 @@
               <span class="text-slate-400 font-medium text-[11px]">Brand Prices:</span>
               <div 
                 v-for="company in inventoryStore.companies" 
-                :key="company.id"
+                :key="company._id || company.id"
                 :class="[
                   'rounded px-2 py-0.5 text-[11px] font-medium border flex items-center gap-1',
-                  company.id === activeCompanyId 
+                  (company._id || company.id) === activeCompanyId 
                     ? 'border-indigo-500 bg-indigo-50/80 font-bold text-indigo-900 dark:bg-indigo-950/70 dark:text-indigo-200' 
                     : 'border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
                 ]"
               >
                 <span>{{ company.name }}:</span>
-                <span v-if="product.prices[company.id]" class="font-bold">
-                  Rs. {{ Number(product.prices[company.id]).toLocaleString() }}
+                <span v-if="product.prices[company._id || company.id]" class="font-bold">
+                  Rs. {{ Number(product.prices[company._id || company.id]).toLocaleString() }}
                 </span>
-                <span v-else class="text-slate-400 italic">N/A</span>
+                <span v-else class="italic text-rose-400">N/A</span>
               </div>
             </div>
           </div>
 
-          <!-- Add Action Column -->
-          <div class="flex items-center gap-3 shrink-0 self-end md:self-center">
-            <div class="text-right mr-2">
-              <div class="text-xs text-slate-400">Price ({{ activeCompanyName }})</div>
-              <div class="text-base font-extrabold text-slate-900 dark:text-white">
-                <span v-if="product.currentCompanyPrice">Rs. {{ Number(product.currentCompanyPrice).toLocaleString() }}</span>
-                <span v-else class="text-xs text-amber-600 font-semibold">Not listed</span>
+          <!-- Price for Active Selected Company & Add Action -->
+          <div class="flex items-center gap-4 shrink-0">
+            <div class="text-right">
+              <div class="text-xs text-slate-400 font-medium">{{ activeCompanyName }} Price:</div>
+              <div 
+                v-if="product.isAvailableInSelectedCompany"
+                class="text-lg font-black text-slate-900 dark:text-white font-mono"
+              >
+                Rs. {{ Number(product.currentCompanyPrice).toLocaleString() }}
+              </div>
+              <div v-else class="text-xs font-bold text-rose-500">
+                Not Sold By Brand
               </div>
             </div>
 
-            <!-- Quantity & Add Button -->
             <button
               @click="selectProduct(product)"
               :disabled="!product.isAvailableInSelectedCompany"
@@ -142,12 +146,15 @@
         </div>
       </div>
 
-      <!-- Footer Info -->
-      <div class="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-3 dark:border-slate-800 dark:bg-slate-950 text-xs text-slate-500">
-        <span>Showing {{ filteredList.length }} products</span>
-        <button @click="$emit('close')" class="font-semibold text-slate-700 hover:underline dark:text-slate-300">
-          Close Window (Esc)
-        </button>
+      <!-- Pagination Footer -->
+      <div class="border-t border-slate-200 bg-slate-50 px-6 py-2 dark:border-slate-800 dark:bg-slate-950">
+        <AppPagination
+          v-model="currentPage"
+          v-model:pageSize="pageSize"
+          :totalItems="filteredList.length"
+          :pageSize="pageSize"
+          :pageSizeOptions="[6, 8, 16, 32]"
+        />
       </div>
     </div>
   </div>
@@ -156,6 +163,7 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue';
 import { useInventoryStore } from '@/stores/inventoryStore';
+import AppPagination from '@/components/common/AppPagination.vue';
 import { Search, X, Plus, PackageOpen } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -180,8 +188,13 @@ const searchTerm = ref('');
 const selectedCategory = ref('all');
 const searchInputRef = ref(null);
 
+// Pagination State
+const currentPage = ref(1);
+const pageSize = ref(8);
+
 watch(() => props.isOpen, (open) => {
   if (open) {
+    currentPage.value = 1;
     nextTick(() => {
       searchInputRef.value?.focus();
     });
@@ -196,6 +209,15 @@ const filteredList = computed(() => {
     selectedCategory.value, 
     props.activeCompanyId
   );
+});
+
+const paginatedList = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return filteredList.value.slice(start, start + pageSize.value);
+});
+
+watch(() => [searchTerm.value, selectedCategory.value], () => {
+  currentPage.value = 1;
 });
 
 const selectProduct = (product) => {

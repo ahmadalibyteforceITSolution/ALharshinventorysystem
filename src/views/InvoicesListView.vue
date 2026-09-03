@@ -74,8 +74,8 @@
             </tr>
 
             <tr
-              v-for="inv in filteredInvoices"
-              :key="inv.id || inv.invoiceNumber"
+              v-for="inv in paginatedInvoices"
+              :key="inv.id || inv._id || inv.invoiceNumber"
               class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors"
             >
               <td class="py-3.5 px-4 font-mono font-bold text-indigo-600">
@@ -140,6 +140,17 @@
           </tbody>
         </table>
       </div>
+
+      <!-- Pagination Footer -->
+      <div class="border-t border-slate-200 dark:border-slate-800 px-4 bg-slate-50/50 dark:bg-slate-900/50">
+        <AppPagination
+          v-model="currentPage"
+          v-model:pageSize="pageSize"
+          :totalItems="filteredInvoices.length"
+          :pageSize="pageSize"
+          :pageSizeOptions="[10, 25, 50]"
+        />
+      </div>
     </div>
 
     <!-- Print Modal -->
@@ -153,14 +164,19 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useInvoiceStore } from '@/stores/invoiceStore';
+import AppPagination from '@/components/common/AppPagination.vue';
 import InvoicePrintModal from '@/components/invoice/InvoicePrintModal.vue';
 import { Plus, Search, Printer, Edit3, Trash2, Receipt, FileSpreadsheet } from 'lucide-vue-next';
 
 const invoiceStore = useInvoiceStore();
 const searchQuery = ref('');
 const statusFilter = ref('all');
+
+// Pagination State
+const currentPage = ref(1);
+const pageSize = ref(10);
 
 const isPrintModalOpen = ref(false);
 const selectedInvoiceForPrint = ref(null);
@@ -175,6 +191,15 @@ const filteredInvoices = computed(() => {
       inv.companyName.toLowerCase().includes(q);
     return matchesStatus && matchesQuery;
   });
+});
+
+const paginatedInvoices = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return filteredInvoices.value.slice(start, start + pageSize.value);
+});
+
+watch(() => [searchQuery.value, statusFilter.value], () => {
+  currentPage.value = 1;
 });
 
 const previewInvoice = (inv) => {

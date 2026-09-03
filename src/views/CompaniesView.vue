@@ -40,7 +40,7 @@
     <!-- Companies Grid -->
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
       <div
-        v-for="company in inventoryStore.companies"
+        v-for="company in paginatedCompanies"
         :key="company._id || company.id"
         class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 flex flex-col justify-between relative overflow-hidden"
       >
@@ -109,6 +109,17 @@
           </button>
         </div>
       </div>
+    </div>
+
+    <!-- Pagination Controls -->
+    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 px-4 mt-6">
+      <AppPagination
+        v-model="currentPage"
+        v-model:pageSize="pageSize"
+        :totalItems="inventoryStore.companies.length"
+        :pageSize="pageSize"
+        :pageSizeOptions="[6, 9, 18, 36]"
+      />
     </div>
 
     <!-- Add/Edit Company Modal -->
@@ -239,11 +250,21 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import { useInventoryStore } from '@/stores/inventoryStore';
+import AppPagination from '@/components/common/AppPagination.vue';
 import { Plus, Trash2, X, Upload, Image as ImageIcon, Building2 } from 'lucide-vue-next';
 
 const inventoryStore = useInventoryStore();
+
+// Pagination State
+const currentPage = ref(1);
+const pageSize = ref(9);
+
+const paginatedCompanies = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return inventoryStore.companies.slice(start, start + pageSize.value);
+});
 
 const isModalOpen = ref(false);
 const form = reactive({

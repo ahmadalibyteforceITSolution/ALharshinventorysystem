@@ -117,8 +117,8 @@
             </tr>
 
             <tr
-              v-for="prod in inventoryStore.filteredProducts"
-              :key="prod.id"
+              v-for="prod in paginatedProducts"
+              :key="prod.id || prod._id"
               class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors group"
             >
               <!-- Common Code -->
@@ -160,33 +160,55 @@
                 </span>
               </td>
 
-              <!-- Stock Quantity -->
-              <td class="py-3.5 px-4 text-center font-bold text-slate-700 dark:text-slate-300">
-                {{ prod.stockQty || 0 }} {{ prod.unit || 'pcs' }}
+              <!-- Stock & Unit -->
+              <td class="py-3.5 px-4 text-center">
+                <span 
+                  :class="[
+                    'inline-block px-2 py-0.5 rounded text-[11px] font-bold font-mono',
+                    prod.stockQty > 50 
+                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400'
+                      : prod.stockQty > 0
+                        ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400'
+                        : 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400'
+                  ]"
+                >
+                  {{ prod.stockQty }} {{ prod.unit || 'pcs' }}
+                </span>
               </td>
 
               <!-- Actions -->
               <td class="py-3.5 px-4 text-center">
-                <div class="flex items-center justify-center gap-1.5">
+                <div class="flex items-center justify-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
                   <button
                     @click="editProduct(prod)"
-                    title="Edit Prices"
-                    class="rounded-lg p-1.5 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-slate-800"
+                    class="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-indigo-600 dark:hover:bg-slate-800"
+                    title="Edit Product"
                   >
-                    <Edit3 class="h-4 w-4" />
+                    <Edit3 class="h-3.5 w-3.5" />
                   </button>
                   <button
-                    @click="deleteProduct(prod.id)"
-                    title="Delete Product"
+                    @click="deleteProduct(prod._id || prod.id)"
                     class="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-slate-800"
+                    title="Delete Product"
                   >
-                    <Trash2 class="h-4 w-4" />
+                    <Trash2 class="h-3.5 w-3.5" />
                   </button>
                 </div>
               </td>
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Pagination Footer -->
+      <div class="border-t border-slate-200 dark:border-slate-800 px-4 bg-slate-50/50 dark:bg-slate-900/50">
+        <AppPagination
+          v-model="currentPage"
+          v-model:pageSize="pageSize"
+          :totalItems="inventoryStore.filteredProducts.length"
+          :pageSize="pageSize"
+          :pageSizeOptions="[10, 25, 50, 100]"
+        />
       </div>
     </div>
 
@@ -330,11 +352,25 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, computed, watch } from 'vue';
 import { useInventoryStore } from '@/stores/inventoryStore';
+import AppPagination from '@/components/common/AppPagination.vue';
 import { Plus, Search, Edit3, Trash2, Package, X, Download, Upload, FileSpreadsheet } from 'lucide-vue-next';
 
 const inventoryStore = useInventoryStore();
+
+// Pagination State
+const currentPage = ref(1);
+const pageSize = ref(10);
+
+const paginatedProducts = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return inventoryStore.filteredProducts.slice(start, start + pageSize.value);
+});
+
+watch(() => [inventoryStore.searchQuery, inventoryStore.selectedCategoryFilter], () => {
+  currentPage.value = 1;
+});
 
 const isModalOpen = ref(false);
 const editForm = reactive({

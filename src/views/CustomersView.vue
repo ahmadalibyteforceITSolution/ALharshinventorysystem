@@ -19,11 +19,20 @@
       </div>
     </div>
 
+    <!-- Empty State -->
+    <div v-if="filteredCustomers.length === 0" class="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 p-12 text-center">
+      <h3 class="text-base font-bold text-slate-900 dark:text-white">No Customers Found</h3>
+      <p class="text-xs text-slate-500 mt-1 mb-4">Add your contractors and clients to track their invoice history.</p>
+      <button @click="openAddModal" class="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-500">
+        Add First Customer
+      </button>
+    </div>
+
     <!-- Customers Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
       <div
-        v-for="customer in inventoryStore.customers"
-        :key="customer.id"
+        v-for="customer in paginatedCustomers"
+        :key="customer.id || customer._id"
         class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 flex flex-col justify-between"
       >
         <div>
@@ -77,6 +86,17 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Pagination Controls -->
+    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 px-4 mt-6">
+      <AppPagination
+        v-model="currentPage"
+        v-model:pageSize="pageSize"
+        :totalItems="filteredCustomers.length"
+        :pageSize="pageSize"
+        :pageSizeOptions="[6, 12, 24, 48]"
+      />
     </div>
 
     <!-- Add/Edit Modal -->
@@ -161,15 +181,29 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { useInvoiceStore } from '@/stores/invoiceStore';
+import AppPagination from '@/components/common/AppPagination.vue';
 import { Plus, Phone, Mail, MapPin, ArrowRight, X } from 'lucide-vue-next';
 
 const router = useRouter();
 const inventoryStore = useInventoryStore();
 const invoiceStore = useInvoiceStore();
+
+// Pagination State
+const currentPage = ref(1);
+const pageSize = ref(12);
+
+const filteredCustomers = computed(() => {
+  return inventoryStore.customers;
+});
+
+const paginatedCustomers = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return filteredCustomers.value.slice(start, start + pageSize.value);
+});
 
 const isModalOpen = ref(false);
 const form = reactive({
