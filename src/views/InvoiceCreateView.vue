@@ -163,27 +163,29 @@
           >
             <option 
               v-for="comp in inventoryStore.companies" 
-              :key="comp.id" 
-              :value="comp.id"
+              :key="comp._id || comp.id" 
+              :value="comp._id || comp.id"
             >
               {{ comp.name }} (Default Discount: {{ comp.defaultDiscount }}%)
             </option>
           </select>
 
-          <!-- Quick Brand Buttons -->
-          <div class="mt-3 flex flex-wrap gap-1.5">
+          <!-- Quick Brand Buttons with Logos -->
+          <div class="mt-3 flex flex-wrap gap-2">
             <button
               v-for="comp in inventoryStore.companies"
-              :key="comp.id"
-              @click="handleCompanyChange(comp.id)"
+              :key="comp._id || comp.id"
+              type="button"
+              @click="handleCompanyChange(comp._id || comp.id)"
               :class="[
-                'rounded-lg px-2.5 py-1 text-xs font-bold transition-all border',
-                comp.id === invoiceStore.activeInvoice.companyId
+                'inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all border',
+                (comp._id || comp.id) === invoiceStore.activeInvoice.companyId
                   ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
                   : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
               ]"
             >
-              {{ comp.name }}
+              <img v-if="comp.logo" :src="comp.logo" class="h-4 w-4 rounded object-contain bg-white" alt="logo" />
+              <span>{{ comp.name }}</span>
             </button>
           </div>
         </div>

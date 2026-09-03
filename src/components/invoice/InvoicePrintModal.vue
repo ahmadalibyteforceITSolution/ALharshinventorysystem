@@ -82,9 +82,10 @@
             <div class="mt-2 text-xs text-slate-600 space-y-0.5">
               <p><span class="font-bold">Issue Date:</span> {{ invoice.date }}</p>
               <p v-if="invoice.dueDate"><span class="font-bold">Due Date:</span> {{ invoice.dueDate }}</p>
-              <p>
-                <span class="font-bold">Selected Brand:</span> 
-                <span class="font-extrabold text-indigo-600 ml-1">{{ invoice.companyName }}</span>
+              <p class="flex items-center md:justify-end gap-1.5 mt-1">
+                <span class="font-bold">Brand:</span> 
+                <img v-if="companyLogo" :src="companyLogo" class="h-5 w-auto max-w-[70px] object-contain rounded inline-block bg-white" alt="logo" />
+                <span class="font-extrabold text-indigo-600">{{ invoice.companyName }}</span>
               </p>
             </div>
           </div>
@@ -210,6 +211,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import { useInventoryStore } from '@/stores/inventoryStore';
 import { Printer, Download, Share2, X } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -225,7 +227,15 @@ const props = defineProps({
 
 defineEmits(['close']);
 
+const inventoryStore = useInventoryStore();
 const isGeneratingPdf = ref(false);
+
+const companyLogo = computed(() => {
+  const comp = inventoryStore.companies.find(
+    c => (c._id && c._id === props.invoice.companyId) || (c.id && c.id === props.invoice.companyId) || c.name === props.invoice.companyName
+  );
+  return comp?.logo || '';
+});
 
 const isQuotation = computed(() => props.invoice?.type === 'quotation');
 

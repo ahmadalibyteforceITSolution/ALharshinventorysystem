@@ -13,6 +13,7 @@ const CompanySchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
   code: { type: String, required: true },
   defaultDiscount: { type: Number, default: 0 },
+  logo: { type: String, default: '' },
   color: { type: String, default: '#4f46e5' },
   phone: { type: String, default: '' },
   email: { type: String, default: '' },
