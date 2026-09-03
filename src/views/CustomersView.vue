@@ -61,12 +61,20 @@
             <span>Create Bill</span>
             <ArrowRight class="h-3.5 w-3.5" />
           </button>
-          <button
-            @click="editCustomer(customer)"
-            class="text-xs font-semibold text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-          >
-            Edit
-          </button>
+          <div class="flex items-center gap-2">
+            <button
+              @click="editCustomer(customer)"
+              class="text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+            >
+              Edit
+            </button>
+            <button
+              @click="deleteCustomer(customer.id || customer._id)"
+              class="text-xs font-semibold text-rose-500 hover:text-rose-700"
+            >
+              Delete
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -204,5 +212,11 @@ const createBillForCustomer = (customer) => {
   invoiceStore.activeInvoice.customerContact = customer.phone || '';
   invoiceStore.activeInvoice.customerAddress = customer.address || '';
   router.push('/invoices/create');
+};
+
+const deleteCustomer = async (id) => {
+  if (confirm('Are you sure you want to delete this customer?')) {
+    await inventoryStore.deleteCustomer(id);
+  }
 };
 </script>

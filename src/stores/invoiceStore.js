@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { db } from '@/db/database';
+import { api } from '@/services/api';
 import { useInventoryStore } from './inventoryStore';
 
 export const useInvoiceStore = defineStore('invoice', {
@@ -104,7 +104,10 @@ export const useInvoiceStore = defineStore('invoice', {
     async fetchInvoices() {
       this.isLoading = true;
       try {
-        this.invoices = await db.invoices.toArray();
+        const remote = await api.getInvoices();
+        if (remote) {
+          this.invoices = remote;
+        }
       } catch (err) {
         console.error('Failed to load invoices:', err);
       } finally {
@@ -378,7 +381,7 @@ export const useInvoiceStore = defineStore('invoice', {
       });
     },
 
-    // Save active invoice to Dexie DB
+    // Save active invoice directly to MongoDB Atlas + Pinia state
     async saveActiveInvoice() {
       const invoiceData = {
         invoiceNumber: this.activeInvoice.invoiceNumber,
@@ -403,32 +406,58 @@ export const useInvoiceStore = defineStore('invoice', {
         updatedAt: new Date().toISOString()
       };
 
-      if (this.activeInvoice.id) {
-        await db.invoices.update(this.activeInvoice.id, invoiceData);
+      const existingIdx = this.invoices.findIndex(
+        i => (this.activeInvoice._id && i._id === this.activeInvoice._id) || (this.activeInvoice.id && i.id === this.activeInvoice.id) || i.invoiceNumber === invoiceData.invoiceNumber
+      );
+
+      if (existingIdx >= 0) {
+        this.invoices[existingIdx] = { ...this.invoices[existingIdx], ...invoiceData };
       } else {
-        const id = await db.invoices.add(invoiceData);
-        this.activeInvoice.id = id;
+        const tempId = Date.now().toString();
+        this.invoices.unshift({ ...invoiceData, _id: tempId, id: tempId });
+        this.activeInvoice.id = tempId;
       }
 
-      await this.fetchInvoices();
-      return this.activeInvoice.id;
+      try {
+        const saved = await api.saveInvoice({
+          ...invoiceData,
+          _id: this.activeInvoice._id
+        });
+        if (saved && saved._id) {
+          const idx = this.invoices.findIndex(i => i.invoiceNumber === invoiceData.invoiceNumber);
+          if (idx >= 0) this.invoices[idx] = saved;
+          this.activeInvoice._id = saved._id;
+        }
+      } catch (err) {
+        console.warn('MongoDB invoice sync error:', err.message);
+      }
+
+      return this.activeInvoice.id || this.activeInvoice._id;
     },
 
     // Load existing invoice into active draft
     async loadInvoice(id) {
-      const inv = await db.invoices.get(Number(id));
+      let inv = this.invoices.find(i => i._id === id || i.id === id || Number(i.id) === Number(id));
+      if (!inv) {
+        await this.fetchInvoices();
+        inv = this.invoices.find(i => i._id === id || i.id === id || Number(i.id) === Number(id));
+      }
       if (inv) {
-        this.activeInvoice = {
-          ...inv,
-          id: inv.id
-        };
+        this.activeInvoice = JSON.parse(JSON.stringify(inv));
       }
     },
 
     // Delete invoice
     async deleteInvoice(id) {
-      await db.invoices.delete(Number(id));
-      await this.fetchInvoices();
+      const inv = this.invoices.find(i => i._id === id || i.id === id);
+      this.invoices = this.invoices.filter(i => i._id !== id && i.id !== id);
+
+      const dbId = inv?._id || id;
+      try {
+        await api.deleteInvoice(dbId);
+      } catch (err) {
+        console.warn('MongoDB invoice delete error:', err.message);
+      }
     }
   }
 });

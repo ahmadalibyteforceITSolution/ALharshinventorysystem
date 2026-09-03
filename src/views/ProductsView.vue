@@ -115,14 +115,14 @@
               <!-- Company Prices Matrix (PDF Section 3 & 12) -->
               <td
                 v-for="company in inventoryStore.companies"
-                :key="company.id"
+                :key="company._id || company.id"
                 class="py-3.5 px-4 text-right font-mono font-bold"
               >
                 <span 
-                  v-if="inventoryStore.getPrice(prod.commonCode, company.id)"
+                  v-if="inventoryStore.getPrice(prod.commonCode, company._id || company.id)"
                   class="text-slate-900 dark:text-white"
                 >
-                  {{ Number(inventoryStore.getPrice(prod.commonCode, company.id)).toLocaleString() }}
+                  {{ Number(inventoryStore.getPrice(prod.commonCode, company._id || company.id)).toLocaleString() }}
                 </span>
                 <span 
                   v-else 
@@ -263,14 +263,14 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div 
                 v-for="company in inventoryStore.companies" 
-                :key="company.id"
+                :key="company._id || company.id"
                 class="flex items-center justify-between gap-3 bg-white p-2.5 rounded-lg border border-slate-200 dark:bg-slate-800 dark:border-slate-700"
               >
                 <span class="font-bold text-xs text-slate-800 dark:text-slate-200">{{ company.name }}:</span>
                 <div class="flex items-center gap-1 w-32">
                   <span class="text-xs text-slate-400">Rs.</span>
                   <input
-                    v-model.number="editPrices[company.id]"
+                    v-model.number="editPrices[company._id || company.id]"
                     type="number"
                     min="0"
                     placeholder="None"
@@ -312,6 +312,7 @@ const inventoryStore = useInventoryStore();
 const isModalOpen = ref(false);
 const editForm = reactive({
   id: null,
+  _id: null,
   commonCode: '',
   name: '',
   categoryId: '',
@@ -324,21 +325,23 @@ const editPrices = reactive({});
 
 const openAddModal = () => {
   editForm.id = null;
+  editForm._id = null;
   editForm.commonCode = '';
   editForm.name = '';
-  editForm.categoryId = inventoryStore.categories[0]?.id || '';
+  editForm.categoryId = (inventoryStore.categories[0]?._id || inventoryStore.categories[0]?.id) || '';
   editForm.description = '';
   editForm.unit = 'pcs';
   editForm.stockQty = 100;
 
   inventoryStore.companies.forEach(c => {
-    editPrices[c.id] = '';
+    editPrices[c._id || c.id] = '';
   });
   isModalOpen.value = true;
 };
 
 const editProduct = (product) => {
   editForm.id = product.id;
+  editForm._id = product._id;
   editForm.commonCode = product.commonCode;
   editForm.name = product.name;
   editForm.categoryId = product.categoryId;
@@ -347,8 +350,8 @@ const editProduct = (product) => {
   editForm.stockQty = product.stockQty || 0;
 
   inventoryStore.companies.forEach(c => {
-    const p = inventoryStore.getPrice(product.commonCode, c.id);
-    editPrices[c.id] = p !== null ? p : '';
+    const p = inventoryStore.getPrice(product.commonCode, c._id || c.id);
+    editPrices[c._id || c.id] = p !== null ? p : '';
   });
   isModalOpen.value = true;
 };

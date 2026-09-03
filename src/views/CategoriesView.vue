@@ -47,17 +47,25 @@
         <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <router-link
             to="/products"
-            @click="inventoryStore.selectedCategoryFilter = category.id"
+            @click="inventoryStore.selectedCategoryFilter = category.id || category._id"
             class="text-xs font-bold text-indigo-600 hover:underline"
           >
             Browse Products →
           </router-link>
-          <button
-            @click="editCategory(category)"
-            class="text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-white"
-          >
-            Edit
-          </button>
+          <div class="flex items-center gap-2">
+            <button
+              @click="editCategory(category)"
+              class="text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+            >
+              Edit
+            </button>
+            <button
+              @click="deleteCategory(category.id || category._id)"
+              class="text-xs font-semibold text-rose-500 hover:text-rose-700"
+            >
+              Delete
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -155,5 +163,11 @@ const saveCategory = async () => {
   form.slug = form.name.toLowerCase().replace(/\s+/g, '-');
   await inventoryStore.saveCategory({ ...form });
   isModalOpen.value = false;
+};
+
+const deleteCategory = async (id) => {
+  if (confirm('Are you sure you want to delete this category?')) {
+    await inventoryStore.deleteCategory(id);
+  }
 };
 </script>

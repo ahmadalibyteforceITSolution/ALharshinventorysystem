@@ -95,14 +95,26 @@ export const api = {
     return null;
   },
 
-  async getCategories() {
+  async saveCategory(category) {
     try {
-      const res = await fetch(getEndpoint('/api/categories'));
+      const res = await fetch(getEndpoint('/api/categories'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(category)
+      });
       if (res.ok) return await res.json();
     } catch (e) {
-      console.warn('API getCategories fallback');
+      console.warn('API saveCategory fallback');
     }
     return null;
+  },
+
+  async deleteCategory(id) {
+    try {
+      await fetch(getEndpoint(`/api/categories?id=${id}`), { method: 'DELETE' });
+    } catch (e) {
+      console.warn('API deleteCategory fallback');
+    }
   },
 
   async getInvoices() {

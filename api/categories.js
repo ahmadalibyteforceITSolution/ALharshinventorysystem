@@ -21,7 +21,13 @@ export default async function handler(req, res) {
       return res.status(200).json(cat);
     }
 
-    res.setHeader('Allow', ['GET', 'POST']);
+    if (req.method === 'DELETE') {
+      const { id } = req.query;
+      await Category.findByIdAndDelete(id);
+      return res.status(200).json({ success: true });
+    }
+
+    res.setHeader('Allow', ['GET', 'POST', 'DELETE']);
     res.status(405).end(`Method ${req.method} Not Allowed`);
   } catch (err) {
     res.status(500).json({ error: err.message });
