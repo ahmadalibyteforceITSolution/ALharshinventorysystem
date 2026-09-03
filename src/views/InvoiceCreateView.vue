@@ -548,11 +548,21 @@ const isSaving = ref(false);
 
 const isEditing = computed(() => !!route.params.id);
 
+watch(() => inventoryStore.companies, (comps) => {
+  if (comps && comps.length > 0 && !invoiceStore.activeInvoice.companyId && !route.params.id) {
+    const def = comps.find(c => c.isDefault) || comps[0];
+    invoiceStore.activeInvoice.companyId = def._id || def.id;
+    invoiceStore.activeInvoice.companyName = def.name;
+  }
+}, { immediate: true });
+
 onMounted(async () => {
   if (route.params.id) {
     await invoiceStore.loadInvoice(route.params.id);
-  } else if (!invoiceStore.activeInvoice.companyId) {
-    invoiceStore.initNewInvoice('invoice');
+  } else {
+    if (!invoiceStore.activeInvoice.companyId) {
+      invoiceStore.initNewInvoice('invoice');
+    }
   }
 });
 

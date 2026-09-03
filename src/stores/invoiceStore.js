@@ -156,19 +156,48 @@ export const useInvoiceStore = defineStore('invoice', {
     // Add product item to active invoice
     addItem(product, quantity = 1, customDiscount = null) {
       const inventoryStore = useInventoryStore();
+
+      // If active invoice has no companyId yet, default to first company
+      if (!this.activeInvoice.companyId && inventoryStore.companies.length > 0) {
+        const defaultComp = inventoryStore.companies.find(c => c.isDefault) || inventoryStore.companies[0];
+        this.activeInvoice.companyId = defaultComp._id || defaultComp.id;
+        this.activeInvoice.companyName = defaultComp.name;
+      }
+
       const company = inventoryStore.getCompanyById(this.activeInvoice.companyId);
 
-      // Lookup price for current company
-      const currentPrice = inventoryStore.getPrice(product.commonCode, this.activeInvoice.companyId);
-      const isAvailable = currentPrice !== null && currentPrice > 0;
-      const unitPrice = isAvailable ? Number(currentPrice) : 0;
+      // Lookup price:
+      // 1. Try inventoryStore.getPrice
+      // 2. Try product.currentCompanyPrice
+      // 3. Try product.prices matching company _id, id, or name
+      let currentPrice = inventoryStore.getPrice(product.commonCode, this.activeInvoice.companyId);
+      if (currentPrice === null || currentPrice === undefined || Number(currentPrice) === 0) {
+        if (product.currentCompanyPrice && Number(product.currentCompanyPrice) > 0) {
+          currentPrice = Number(product.currentCompanyPrice);
+        } else if (product.prices) {
+          const cId = this.activeInvoice.companyId;
+          const altPrice = product.prices[cId] || 
+            (company?.id && product.prices[company.id]) || 
+            (company?.name && product.prices[company.name]);
+          if (altPrice) currentPrice = Number(altPrice);
+        }
+      }
+
+      // If still not found, check first available price in product.prices
+      if ((currentPrice === null || currentPrice === undefined || Number(currentPrice) === 0) && product.prices) {
+        const firstPrice = Object.values(product.prices).find(v => Number(v) > 0);
+        if (firstPrice) currentPrice = Number(firstPrice);
+      }
+
+      const isAvailable = currentPrice !== null && currentPrice !== undefined && Number(currentPrice) > 0;
+      const unitPrice = isAvailable ? Number(currentPrice) : (Number(product.unitPrice) || 0);
 
       // Determine discount: custom discount > company default discount > 0
       const discountPercent = customDiscount !== null 
         ? Number(customDiscount) 
         : (company?.defaultDiscount ? Number(company.defaultDiscount) : 0);
 
-      const qty = Math.max(1, Number(quantity));
+      const qty = Math.max(1, Number(quantity) || 1);
       const grossAmount = unitPrice * qty;
       const discountAmount = Math.round(grossAmount * (discountPercent / 100));
       const netAmount = grossAmount - discountAmount;
