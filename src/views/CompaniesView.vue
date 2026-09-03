@@ -1,5 +1,32 @@
 <template>
   <div class="space-y-6 max-w-7xl mx-auto">
+    <!-- Subscription Brand Limit Indicator Banner -->
+    <div class="rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50/90 to-purple-50/90 p-4 dark:border-indigo-900/50 dark:from-indigo-950/40 dark:to-purple-950/40 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="h-10 w-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+          <Crown class="h-5 w-5 text-amber-300" />
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-black text-indigo-950 dark:text-white uppercase">Subscription Brand Limit:</span>
+            <span class="rounded bg-indigo-600 px-2 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider">
+              {{ authStore.currentPlan }} Plan
+            </span>
+          </div>
+          <p class="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+            You are using <strong class="text-indigo-700 dark:text-indigo-400">{{ inventoryStore.companies.length }}</strong> of <strong class="text-slate-900 dark:text-white">{{ authStore.isUnlimited ? 'Unlimited' : authStore.brandLimit }}</strong> available manufacturer brands.
+          </p>
+        </div>
+      </div>
+      <router-link
+        to="/subscription"
+        class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 text-xs font-bold shadow-sm transition-all shrink-0"
+      >
+        <Sparkles class="h-4 w-4 text-amber-300" />
+        <span>Upgrade Capacity</span>
+      </router-link>
+    </div>
+
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5 dark:border-slate-800">
       <div>
@@ -259,6 +286,13 @@
       @cancel="isDeleteModalOpen = false"
     />
 
+    <!-- Upgrade Plan Modal when Brand Limit Reached -->
+    <UpgradePlanModal
+      :is-open="isUpgradeModalOpen"
+      :current-count="inventoryStore.companies.length"
+      @close="isUpgradeModalOpen = false"
+    />
+
     <!-- Toast Feedback -->
     <AppToast ref="toastRef" />
   </div>
@@ -267,13 +301,26 @@
 <script setup>
 import { ref, reactive, computed } from 'vue';
 import { useInventoryStore } from '@/stores/inventoryStore';
+import { useAuthStore } from '@/stores/authStore';
 import AppPagination from '@/components/common/AppPagination.vue';
 import ConfirmModal from '@/components/common/ConfirmModal.vue';
+import UpgradePlanModal from '@/components/common/UpgradePlanModal.vue';
 import AppToast from '@/components/common/AppToast.vue';
-import { Plus, Trash2, X, Upload, Image as ImageIcon, Building2 } from 'lucide-vue-next';
+import { 
+  Plus, 
+  Trash2, 
+  X, 
+  Upload, 
+  Image as ImageIcon, 
+  Building2, 
+  Crown, 
+  Sparkles 
+} from 'lucide-vue-next';
 
 const inventoryStore = useInventoryStore();
+const authStore = useAuthStore();
 const toastRef = ref(null);
+const isUpgradeModalOpen = ref(false);
 
 // Pagination State
 const currentPage = ref(1);
@@ -348,6 +395,10 @@ const handleLogoUpload = (event) => {
 };
 
 const openAddModal = () => {
+  if (!authStore.canAddBrand(inventoryStore.companies.length)) {
+    isUpgradeModalOpen.value = true;
+    return;
+  }
   form.id = null;
   form._id = null;
   form.name = '';

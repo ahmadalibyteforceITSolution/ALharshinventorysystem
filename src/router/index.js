@@ -1,6 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import { useAuthStore } from '@/stores/authStore';
 
 import DashboardView from '@/views/DashboardView.vue';
+import LoginView from '@/views/LoginView.vue';
+import RegisterView from '@/views/RegisterView.vue';
+import SubscriptionView from '@/views/SubscriptionView.vue';
 import InvoiceCreateView from '@/views/InvoiceCreateView.vue';
 import InvoicesListView from '@/views/InvoicesListView.vue';
 import QuotationsListView from '@/views/QuotationsListView.vue';
@@ -13,10 +17,28 @@ import SettingsView from '@/views/SettingsView.vue';
 
 const routes = [
   {
+    path: '/login',
+    name: 'login',
+    component: LoginView,
+    meta: { title: 'Sign In', isPublic: true }
+  },
+  {
+    path: '/register',
+    name: 'register',
+    component: RegisterView,
+    meta: { title: 'Create Shop Account', isPublic: true }
+  },
+  {
     path: '/',
     name: 'dashboard',
     component: DashboardView,
     meta: { title: 'Dashboard' }
+  },
+  {
+    path: '/subscription',
+    name: 'subscription',
+    component: SubscriptionView,
+    meta: { title: 'Subscription Plans & Capacity' }
   },
   {
     path: '/invoices/create',
@@ -94,6 +116,18 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   document.title = `${to.meta.title || 'Inventory'} | Al-Harsh System`;
+
+  const authStore = useAuthStore();
+  const isPublic = to.meta.isPublic || false;
+
+  if (!isPublic && !authStore.isAuthenticated) {
+    return next({ name: 'login' });
+  }
+
+  if (isPublic && authStore.isAuthenticated && (to.name === 'login' || to.name === 'register')) {
+    return next({ name: 'dashboard' });
+  }
+
   next();
 });
 

@@ -3,12 +3,27 @@
 export const VERCEL_BASE_URL = 'https://a-lharshinventorysystem.vercel.app';
 
 export function getEndpoint(path) {
-  // If already running directly on the Vercel app domain, use relative route
   if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
     return path;
   }
-  // When running locally or on any client, connect directly to the live Vercel backend
   return `${VERCEL_BASE_URL}${path}`;
+}
+
+export function getAuthHeaders() {
+  let userId = 'admin_alharsh';
+  try {
+    const userJson = localStorage.getItem('alharsh_user');
+    if (userJson) {
+      const u = JSON.parse(userJson);
+      if (u.userId) userId = u.userId;
+      else if (u._id) userId = u._id;
+    }
+  } catch (_) {}
+
+  return {
+    'Content-Type': 'application/json',
+    'x-user-id': userId
+  };
 }
 
 export const api = {
@@ -39,10 +54,56 @@ export const api = {
     }
   },
 
+  // 0. AUTH & SUBSCRIPTIONS
+  async login(email, password) {
+    const res = await fetch(getEndpoint('/api/auth?action=login'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to log in');
+    return data;
+  },
+
+  async register(formData) {
+    const res = await fetch(getEndpoint('/api/auth?action=register'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to create account');
+    return data;
+  },
+
+  async updateSubscription(subscriptionData) {
+    const res = await fetch(getEndpoint('/api/auth?action=subscription'), {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(subscriptionData)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update subscription');
+    return data;
+  },
+
+  async getCurrentUser() {
+    try {
+      const res = await fetch(getEndpoint('/api/auth?action=me'), {
+        headers: getAuthHeaders()
+      });
+      if (res.ok) return await res.json();
+    } catch (_) {}
+    return null;
+  },
+
   // 1. PRODUCTS
   async getProducts() {
     try {
-      const res = await fetch(getEndpoint('/api/products'));
+      const res = await fetch(getEndpoint('/api/products'), {
+        headers: getAuthHeaders()
+      });
       if (res.ok) return await res.json();
     } catch (e) {
       console.warn('API getProducts fallback');
@@ -54,7 +115,7 @@ export const api = {
     try {
       const res = await fetch(getEndpoint('/api/products'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(product)
       });
       if (res.ok) return await res.json();
@@ -66,7 +127,10 @@ export const api = {
 
   async deleteProduct(id) {
     try {
-      await fetch(getEndpoint(`/api/products?id=${id}`), { method: 'DELETE' });
+      await fetch(getEndpoint(`/api/products?id=${id}`), { 
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
     } catch (e) {
       console.warn('API deleteProduct fallback');
     }
@@ -75,7 +139,9 @@ export const api = {
   // 2. COMPANIES / BRANDS
   async getCompanies() {
     try {
-      const res = await fetch(getEndpoint('/api/companies'));
+      const res = await fetch(getEndpoint('/api/companies'), {
+        headers: getAuthHeaders()
+      });
       if (res.ok) return await res.json();
     } catch (e) {
       console.warn('API getCompanies fallback');
@@ -84,22 +150,24 @@ export const api = {
   },
 
   async saveCompany(company) {
-    try {
-      const res = await fetch(getEndpoint('/api/companies'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(company)
-      });
-      if (res.ok) return await res.json();
-    } catch (e) {
-      console.warn('API saveCompany fallback');
+    const res = await fetch(getEndpoint('/api/companies'), {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(company)
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to save brand');
     }
-    return null;
+    return data;
   },
 
   async deleteCompany(id) {
     try {
-      await fetch(getEndpoint(`/api/companies?id=${id}`), { method: 'DELETE' });
+      await fetch(getEndpoint(`/api/companies?id=${id}`), { 
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
     } catch (e) {
       console.warn('API deleteCompany fallback');
     }
@@ -108,7 +176,9 @@ export const api = {
   // 3. CATEGORIES
   async getCategories() {
     try {
-      const res = await fetch(getEndpoint('/api/categories'));
+      const res = await fetch(getEndpoint('/api/categories'), {
+        headers: getAuthHeaders()
+      });
       if (res.ok) return await res.json();
     } catch (e) {
       console.warn('API getCategories fallback');
@@ -120,7 +190,7 @@ export const api = {
     try {
       const res = await fetch(getEndpoint('/api/categories'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(category)
       });
       if (res.ok) return await res.json();
@@ -132,7 +202,10 @@ export const api = {
 
   async deleteCategory(id) {
     try {
-      await fetch(getEndpoint(`/api/categories?id=${id}`), { method: 'DELETE' });
+      await fetch(getEndpoint(`/api/categories?id=${id}`), { 
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
     } catch (e) {
       console.warn('API deleteCategory fallback');
     }
@@ -141,7 +214,9 @@ export const api = {
   // 4. INVOICES
   async getInvoices() {
     try {
-      const res = await fetch(getEndpoint('/api/invoices'));
+      const res = await fetch(getEndpoint('/api/invoices'), {
+        headers: getAuthHeaders()
+      });
       if (res.ok) return await res.json();
     } catch (e) {
       console.warn('API getInvoices fallback');
@@ -153,7 +228,7 @@ export const api = {
     try {
       const res = await fetch(getEndpoint('/api/invoices'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(invoice)
       });
       if (res.ok) return await res.json();
@@ -165,7 +240,10 @@ export const api = {
 
   async deleteInvoice(id) {
     try {
-      await fetch(getEndpoint(`/api/invoices?id=${id}`), { method: 'DELETE' });
+      await fetch(getEndpoint(`/api/invoices?id=${id}`), { 
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
     } catch (e) {
       console.warn('API deleteInvoice fallback');
     }
@@ -174,7 +252,9 @@ export const api = {
   // 5. CUSTOMERS
   async getCustomers() {
     try {
-      const res = await fetch(getEndpoint('/api/customers'));
+      const res = await fetch(getEndpoint('/api/customers'), {
+        headers: getAuthHeaders()
+      });
       if (res.ok) return await res.json();
     } catch (e) {
       console.warn('API getCustomers fallback');
@@ -186,7 +266,7 @@ export const api = {
     try {
       const res = await fetch(getEndpoint('/api/customers'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(customer)
       });
       if (res.ok) return await res.json();
@@ -198,7 +278,10 @@ export const api = {
 
   async deleteCustomer(id) {
     try {
-      await fetch(getEndpoint(`/api/customers?id=${id}`), { method: 'DELETE' });
+      await fetch(getEndpoint(`/api/customers?id=${id}`), { 
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
     } catch (e) {
       console.warn('API deleteCustomer fallback');
     }

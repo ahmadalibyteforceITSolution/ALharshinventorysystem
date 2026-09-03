@@ -139,6 +139,17 @@
           </router-link>
 
           <router-link
+            to="/subscription"
+            @click="$emit('close')"
+            class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+            :class="isActive('/subscription') ? 'bg-indigo-50 text-indigo-700 font-semibold dark:bg-indigo-950/50 dark:text-indigo-300' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'"
+          >
+            <Crown class="h-4 w-4 shrink-0 text-amber-500" />
+            <span>Subscription & Brands</span>
+            <span class="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">VIP</span>
+          </router-link>
+
+          <router-link
             to="/settings"
             @click="$emit('close')"
             class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
@@ -184,6 +195,7 @@ import {
   FolderTree, 
   Users, 
   Settings, 
+  Crown,
   X 
 } from 'lucide-vue-next';
 

@@ -5,21 +5,35 @@ import { Invoice } from './models.js';
 export default async function handler(req, res) {
   try {
     await connectToDatabase();
+    const userId = req.headers['x-user-id'] || req.query.userId || 'admin_alharsh';
+
+    const userQuery = (userId === 'admin_alharsh')
+      ? { $or: [{ userId: 'admin_alharsh' }, { userId: { $exists: false } }] }
+      : { userId };
 
     if (req.method === 'GET') {
-      const invoices = await Invoice.find({}).sort({ createdAt: -1 });
+      const invoices = await Invoice.find(userQuery).sort({ createdAt: -1 });
       return res.status(200).json(invoices);
     }
 
     if (req.method === 'POST') {
       const data = req.body;
+      const invoicePayload = {
+        ...data,
+        userId
+      };
+
       let invoice;
       if (data._id && mongoose.Types.ObjectId.isValid(data._id)) {
-        invoice = await Invoice.findByIdAndUpdate(data._id, data, { new: true });
+        invoice = await Invoice.findOneAndUpdate(
+          { _id: data._id, ...userQuery },
+          invoicePayload,
+          { new: true }
+        );
       } else {
         invoice = await Invoice.findOneAndUpdate(
-          { invoiceNumber: data.invoiceNumber },
-          data,
+          { invoiceNumber: data.invoiceNumber, ...userQuery },
+          invoicePayload,
           { new: true, upsert: true }
         );
       }
@@ -31,9 +45,9 @@ export default async function handler(req, res) {
       if (!id) return res.status(400).json({ error: 'Missing ID' });
 
       if (mongoose.Types.ObjectId.isValid(id)) {
-        await Invoice.findByIdAndDelete(id);
+        await Invoice.findOneAndDelete({ _id: id, ...userQuery });
       } else {
-        await Invoice.findOneAndDelete({ invoiceNumber: id });
+        await Invoice.findOneAndDelete({ invoiceNumber: id, ...userQuery });
       }
       return res.status(200).json({ success: true, deletedId: id });
     }

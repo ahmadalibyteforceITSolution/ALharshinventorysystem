@@ -5,9 +5,15 @@ import { Product } from './models.js';
 export default async function handler(req, res) {
   try {
     await connectToDatabase();
+    const userId = req.headers['x-user-id'] || req.query.userId || 'admin_alharsh';
+
+    // Query filter: admin_alharsh sees legacy products + their own; other users see ONLY their own
+    const userQuery = (userId === 'admin_alharsh')
+      ? { $or: [{ userId: 'admin_alharsh' }, { userId: { $exists: false } }] }
+      : { userId };
 
     if (req.method === 'GET') {
-      const products = await Product.find({}).sort({ commonCode: 1 });
+      const products = await Product.find(userQuery).sort({ commonCode: 1 });
       return res.status(200).json(products);
     }
 
@@ -24,17 +30,29 @@ export default async function handler(req, res) {
         } catch (_) {}
       }
 
+      const productPayload = {
+        userId,
+        commonCode,
+        name,
+        categoryId,
+        categoryName,
+        description,
+        unit,
+        stockQty,
+        prices
+      };
+
       let product;
       if (_id && mongoose.Types.ObjectId.isValid(_id)) {
-        product = await Product.findByIdAndUpdate(
-          _id,
-          { commonCode, name, categoryId, categoryName, description, unit, stockQty, prices },
+        product = await Product.findOneAndUpdate(
+          { _id, ...userQuery },
+          productPayload,
           { new: true, upsert: true }
         );
       } else {
         product = await Product.findOneAndUpdate(
-          { commonCode },
-          { commonCode, name, categoryId, categoryName, description, unit, stockQty, prices },
+          { commonCode, ...userQuery },
+          productPayload,
           { new: true, upsert: true }
         );
       }
@@ -47,11 +65,10 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Missing product ID or commonCode' });
       }
 
-      // Delete only this specific product by ObjectId or commonCode
       if (mongoose.Types.ObjectId.isValid(id)) {
-        await Product.findByIdAndDelete(id);
+        await Product.findOneAndDelete({ _id: id, ...userQuery });
       } else {
-        await Product.findOneAndDelete({ commonCode: id });
+        await Product.findOneAndDelete({ commonCode: id, ...userQuery });
       }
       return res.status(200).json({ success: true, deletedId: id });
     }

@@ -1,5 +1,11 @@
 <template>
-  <div class="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 font-sans">
+  <!-- Full screen layout for Login & Register pages -->
+  <div v-if="isAuthRoute" class="min-h-screen bg-slate-900 font-sans">
+    <router-view />
+  </div>
+
+  <!-- Main Multi-Brand Inventory Dashboard Layout -->
+  <div v-else class="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 font-sans">
     <!-- Sidebar -->
     <AppSidebar 
       :is-open="isSidebarOpen" 
@@ -29,9 +35,13 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
+import { useRoute } from 'vue-router';
 import AppNavbar from '@/components/layout/AppNavbar.vue';
 import AppSidebar from '@/components/layout/AppSidebar.vue';
 
 const isSidebarOpen = ref(false);
+const route = useRoute();
+
+const isAuthRoute = computed(() => ['login', 'register'].includes(route.name));
 </script>
