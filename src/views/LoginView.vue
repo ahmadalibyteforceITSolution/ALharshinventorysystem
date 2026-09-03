@@ -69,20 +69,6 @@
           </button>
         </form>
 
-        <!-- Quick 1-Click Master Admin Demo Login -->
-        <div class="mt-6 pt-6 border-t border-slate-700/60">
-          <p class="text-[11px] text-center text-slate-400 mb-2">Need quick access to existing catalog?</p>
-          <button
-            type="button"
-            @click="demoAdminLogin"
-            :disabled="isLoading"
-            class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-slate-700/50 hover:bg-slate-700 border border-slate-600 py-2.5 text-xs font-bold text-indigo-300 hover:text-white transition-all"
-          >
-            <Sparkles class="h-4 w-4 text-indigo-400" />
-            <span>1-Click Master Admin (Existing Products)</span>
-          </button>
-        </div>
-
         <!-- Registration Link -->
         <div class="mt-6 text-center text-xs text-slate-400">
           New user?
@@ -101,7 +87,7 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { useInvoiceStore } from '@/stores/invoiceStore';
-import { Layers, Mail, Lock, AlertCircle, Loader2, Sparkles } from 'lucide-vue-next';
+import { Layers, Mail, Lock, AlertCircle, Loader2 } from 'lucide-vue-next';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -127,11 +113,5 @@ const handleLogin = async () => {
   } finally {
     isLoading.value = false;
   }
-};
-
-const demoAdminLogin = async () => {
-  email.value = 'admin@alharsh.com';
-  password.value = 'admin123';
-  await handleLogin();
 };
 </script>
