@@ -181,7 +181,8 @@ const exportJsonBackup = async () => {
 
 const exportExcelCatalog = async () => {
   try {
-    const XLSX = (await import('xlsx')).default;
+    const xlsxModule = await import('xlsx');
+    const XLSX = xlsxModule.default?.utils ? xlsxModule.default : (xlsxModule.utils ? xlsxModule : (xlsxModule.default || xlsxModule));
     const rows = inventoryStore.products.map(p => {
       const row = {
         'Common Code': p.commonCode,

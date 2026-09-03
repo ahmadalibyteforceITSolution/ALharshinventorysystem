@@ -190,7 +190,8 @@ const deleteInvoice = async (id) => {
 
 const exportToExcel = async () => {
   try {
-    const XLSX = (await import('xlsx')).default;
+    const xlsxModule = await import('xlsx');
+    const XLSX = xlsxModule.default?.utils ? xlsxModule.default : (xlsxModule.utils ? xlsxModule : (xlsxModule.default || xlsxModule));
     const rows = filteredInvoices.value.map(inv => ({
       'Invoice #': inv.invoiceNumber,
       'Date': inv.date,
