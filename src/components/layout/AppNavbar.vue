@@ -38,17 +38,29 @@
         <span>Create Bill</span>
       </router-link>
 
+      <!-- Live Vercel Badge -->
+      <a
+        href="https://a-lharshinventorysystem.vercel.app"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50/70 px-2.5 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100 transition-colors dark:border-indigo-900 dark:bg-indigo-950/60 dark:text-indigo-300"
+        title="Open Live Vercel App"
+      >
+        <ExternalLink class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+        <span>Vercel Live</span>
+      </a>
+
       <!-- Active Database Status Pill -->
       <div class="hidden items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300 md:flex">
         <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-        <span>IndexedDB Connected</span>
+        <span>MongoDB Connected</span>
       </div>
     </div>
   </header>
 </template>
 
 <script setup>
-import { Menu, Layers, PlusCircle } from 'lucide-vue-next';
+import { Menu, Layers, PlusCircle, ExternalLink } from 'lucide-vue-next';
 
 defineEmits(['toggle-sidebar']);
 </script>

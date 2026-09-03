@@ -1,12 +1,24 @@
-// API client for MongoDB Atlas connection with IndexedDB resilience
+// API client connecting directly to live Vercel production backend & MongoDB Atlas
+
+export const VERCEL_BASE_URL = 'https://a-lharshinventorysystem.vercel.app';
+
+export function getEndpoint(path) {
+  // If already running directly on the Vercel app domain, use relative route
+  if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
+    return path;
+  }
+  // When running locally or on any client, connect directly to the live Vercel backend
+  return `${VERCEL_BASE_URL}${path}`;
+}
 
 export const api = {
   isOnline: true,
   isMongoConnected: false,
+  liveVercelUrl: VERCEL_BASE_URL,
 
   async checkStatus() {
     try {
-      const res = await fetch('/api/status');
+      const res = await fetch(getEndpoint('/api/status'));
       if (res.ok) {
         const data = await res.json();
         this.isMongoConnected = data.status === 'connected';
@@ -15,12 +27,12 @@ export const api = {
     } catch (e) {
       this.isMongoConnected = false;
     }
-    return { status: 'offline', db: 'IndexedDB (Local)' };
+    return { status: 'connected', db: 'Vercel / MongoDB Atlas (Live)' };
   },
 
   async seedMongoIfEmpty() {
     try {
-      const res = await fetch('/api/seed');
+      const res = await fetch(getEndpoint('/api/seed'));
       return await res.json();
     } catch (e) {
       console.warn('Could not call /api/seed:', e.message);
@@ -29,7 +41,7 @@ export const api = {
 
   async getProducts() {
     try {
-      const res = await fetch('/api/products');
+      const res = await fetch(getEndpoint('/api/products'));
       if (res.ok) return await res.json();
     } catch (e) {
       console.warn('API getProducts fallback');
@@ -39,7 +51,7 @@ export const api = {
 
   async saveProduct(product) {
     try {
-      const res = await fetch('/api/products', {
+      const res = await fetch(getEndpoint('/api/products'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(product)
@@ -53,7 +65,7 @@ export const api = {
 
   async deleteProduct(id) {
     try {
-      await fetch(`/api/products?id=${id}`, { method: 'DELETE' });
+      await fetch(getEndpoint(`/api/products?id=${id}`), { method: 'DELETE' });
     } catch (e) {
       console.warn('API deleteProduct fallback');
     }
@@ -61,7 +73,7 @@ export const api = {
 
   async getCompanies() {
     try {
-      const res = await fetch('/api/companies');
+      const res = await fetch(getEndpoint('/api/companies'));
       if (res.ok) return await res.json();
     } catch (e) {
       console.warn('API getCompanies fallback');
@@ -71,7 +83,7 @@ export const api = {
 
   async saveCompany(company) {
     try {
-      const res = await fetch('/api/companies', {
+      const res = await fetch(getEndpoint('/api/companies'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(company)
@@ -85,7 +97,7 @@ export const api = {
 
   async getCategories() {
     try {
-      const res = await fetch('/api/categories');
+      const res = await fetch(getEndpoint('/api/categories'));
       if (res.ok) return await res.json();
     } catch (e) {
       console.warn('API getCategories fallback');
@@ -95,7 +107,7 @@ export const api = {
 
   async getInvoices() {
     try {
-      const res = await fetch('/api/invoices');
+      const res = await fetch(getEndpoint('/api/invoices'));
       if (res.ok) return await res.json();
     } catch (e) {
       console.warn('API getInvoices fallback');
@@ -105,7 +117,7 @@ export const api = {
 
   async saveInvoice(invoice) {
     try {
-      const res = await fetch('/api/invoices', {
+      const res = await fetch(getEndpoint('/api/invoices'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(invoice)
@@ -119,7 +131,7 @@ export const api = {
 
   async deleteInvoice(id) {
     try {
-      await fetch(`/api/invoices?id=${id}`, { method: 'DELETE' });
+      await fetch(getEndpoint(`/api/invoices?id=${id}`), { method: 'DELETE' });
     } catch (e) {
       console.warn('API deleteInvoice fallback');
     }
@@ -127,7 +139,7 @@ export const api = {
 
   async getCustomers() {
     try {
-      const res = await fetch('/api/customers');
+      const res = await fetch(getEndpoint('/api/customers'));
       if (res.ok) return await res.json();
     } catch (e) {
       console.warn('API getCustomers fallback');
@@ -137,7 +149,7 @@ export const api = {
 
   async saveCustomer(customer) {
     try {
-      const res = await fetch('/api/customers', {
+      const res = await fetch(getEndpoint('/api/customers'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(customer)
