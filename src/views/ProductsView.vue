@@ -8,7 +8,34 @@
           Manage common codes, descriptions, and company-wise prices across Dura Flow, Popular, and Master
         </p>
       </div>
-      <div class="flex items-center gap-3">
+      <div class="flex flex-wrap items-center gap-2.5">
+        <!-- Download Sample Template -->
+        <button
+          @click="downloadTemplate"
+          class="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+          title="Download Sample Excel Template"
+        >
+          <Download class="h-3.5 w-3.5 text-slate-500" />
+          <span>Template</span>
+        </button>
+
+        <!-- Import Excel -->
+        <label class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 shadow-sm hover:bg-emerald-100 cursor-pointer dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300 transition-colors">
+          <Upload class="h-3.5 w-3.5" />
+          <span>Import Excel</span>
+          <input type="file" accept=".xlsx, .xls, .csv" @change="handleImportExcel" class="hidden" />
+        </label>
+
+        <!-- Export Excel -->
+        <button
+          @click="exportProductsExcel"
+          class="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 transition-colors"
+        >
+          <FileSpreadsheet class="h-3.5 w-3.5 text-emerald-600" />
+          <span>Export Excel</span>
+        </button>
+
+        <!-- Add New Product -->
         <button
           @click="openAddModal"
           class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-indigo-500 transition-all"
@@ -305,7 +332,7 @@
 <script setup>
 import { ref, reactive } from 'vue';
 import { useInventoryStore } from '@/stores/inventoryStore';
-import { Plus, Search, Edit3, Trash2, Package, X } from 'lucide-vue-next';
+import { Plus, Search, Edit3, Trash2, Package, X, Download, Upload, FileSpreadsheet } from 'lucide-vue-next';
 
 const inventoryStore = useInventoryStore();
 
@@ -364,6 +391,125 @@ const saveProduct = async () => {
 const deleteProduct = async (id) => {
   if (confirm('Delete this product and its multi-brand price entries?')) {
     await inventoryStore.deleteProduct(id);
+  }
+};
+
+// EXPORT TO EXCEL
+const exportProductsExcel = async () => {
+  try {
+    const xlsxModule = await import('xlsx');
+    const XLSX = xlsxModule.default?.utils ? xlsxModule.default : (xlsxModule.utils ? xlsxModule : (xlsxModule.default || xlsxModule));
+    const rows = inventoryStore.products.map(p => {
+      const row = {
+        'Common Code': p.commonCode,
+        'Product Name': p.name,
+        'Category': inventoryStore.getCategoryById(p.categoryId)?.name || 'General',
+        'Description': p.description || '',
+        'Unit': p.unit || 'pcs',
+        'Stock Qty': p.stockQty || 0
+      };
+      inventoryStore.companies.forEach(c => {
+        const price = inventoryStore.getPrice(p.commonCode, c._id || c.id);
+        row[`${c.name} Price`] = price !== null ? price : '';
+      });
+      return row;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Products');
+    XLSX.writeFile(workbook, 'Al-Harsh-Products.xlsx');
+  } catch (err) {
+    alert('Failed to export products: ' + err.message);
+  }
+};
+
+// DOWNLOAD TEMPLATE FOR IMPORT
+const downloadTemplate = async () => {
+  try {
+    const xlsxModule = await import('xlsx');
+    const XLSX = xlsxModule.default?.utils ? xlsxModule.default : (xlsxModule.utils ? xlsxModule : (xlsxModule.default || xlsxModule));
+    const sampleRow = {
+      'Common Code': 'SF-001',
+      'Product Name': 'Stop Cock',
+      'Category': 'Sanitary',
+      'Description': 'Heavy duty brass core stop cock valve 1/2 inch',
+      'Unit': 'pcs',
+      'Stock Qty': 100
+    };
+    inventoryStore.companies.forEach(c => {
+      sampleRow[`${c.name} Price`] = 2500;
+    });
+    const worksheet = XLSX.utils.json_to_sheet([sampleRow]);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Import_Template');
+    XLSX.writeFile(workbook, 'Product-Import-Template.xlsx');
+  } catch (err) {
+    alert('Failed to download template: ' + err.message);
+  }
+};
+
+// IMPORT FROM EXCEL
+const handleImportExcel = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    const xlsxModule = await import('xlsx');
+    const XLSX = xlsxModule.default?.utils ? xlsxModule.default : (xlsxModule.utils ? xlsxModule : (xlsxModule.default || xlsxModule));
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(firstSheet);
+
+        if (!rows || rows.length === 0) {
+          alert('The uploaded file is empty.');
+          return;
+        }
+
+        let importedCount = 0;
+        for (const row of rows) {
+          const commonCode = row['Common Code'] || row['Code'] || row['commonCode'];
+          const name = row['Product Name'] || row['Name'] || row['name'];
+          if (!commonCode || !name) continue;
+
+          const catName = row['Category'] || row['category'];
+          let category = inventoryStore.categories.find(c => c.name.toLowerCase() === (catName || '').toLowerCase());
+          if (!category && catName) {
+            await inventoryStore.saveCategory({ name: catName, slug: catName.toLowerCase().replace(/\s+/g, '-') });
+            category = inventoryStore.categories.find(c => c.name.toLowerCase() === catName.toLowerCase());
+          }
+
+          const prices = {};
+          inventoryStore.companies.forEach(c => {
+            const pVal = row[`${c.name} Price`] || row[c.name] || row[`${c.name} (PKR)`] || row[`${c.name} (Rs.)`];
+            if (pVal !== undefined && pVal !== null && pVal !== '') {
+              prices[c._id || c.id] = Number(pVal);
+            }
+          });
+
+          await inventoryStore.saveProduct({
+            commonCode: String(commonCode).trim(),
+            name: String(name).trim(),
+            categoryId: category?._id || category?.id || '',
+            description: row['Description'] || '',
+            unit: row['Unit'] || 'pcs',
+            stockQty: Number(row['Stock Qty'] || row['Stock'] || 0)
+          }, prices);
+          importedCount++;
+        }
+
+        alert(`Successfully imported ${importedCount} product(s) into database!`);
+        event.target.value = '';
+      } catch (innerErr) {
+        alert('Error parsing Excel: ' + innerErr.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  } catch (err) {
+    alert('Import failed: ' + err.message);
   }
 };
 </script>
