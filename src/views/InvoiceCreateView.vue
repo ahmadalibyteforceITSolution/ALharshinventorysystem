@@ -514,7 +514,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { useInvoiceStore } from '@/stores/invoiceStore';
