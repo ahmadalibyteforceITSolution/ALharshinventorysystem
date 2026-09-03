@@ -12,8 +12,18 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const { commonCode, name, categoryId, categoryName, description, unit, stockQty, prices, _id } = req.body;
+      let { commonCode, name, categoryId, categoryName, description, unit, stockQty, prices, _id } = req.body;
       
+      if ((!categoryName || categoryName === 'General') && categoryId) {
+        try {
+          const { Category } = await import('./models.js');
+          const cat = mongoose.Types.ObjectId.isValid(categoryId) 
+            ? await Category.findById(categoryId)
+            : await Category.findOne({ name: categoryId });
+          if (cat) categoryName = cat.name;
+        } catch (_) {}
+      }
+
       let product;
       if (_id && mongoose.Types.ObjectId.isValid(_id)) {
         product = await Product.findByIdAndUpdate(

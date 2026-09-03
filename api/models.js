@@ -25,7 +25,7 @@ const CompanySchema = new mongoose.Schema({
 const ProductSchema = new mongoose.Schema({
   commonCode: { type: String, required: true, unique: true, index: true },
   name: { type: String, required: true },
-  categoryId: { type: String, required: true },
+  categoryId: { type: String, default: '' },
   categoryName: { type: String, default: 'General' },
   description: { type: String, default: '' },
   unit: { type: String, default: 'pcs' },

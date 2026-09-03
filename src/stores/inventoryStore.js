@@ -16,20 +16,55 @@ export const useInventoryStore = defineStore('inventory', {
 
   getters: {
     getCategoryById: (state) => (id) => {
-      return state.categories.find(c => c.id === Number(id) || c._id === id || c.id === id);
+      if (!id) return null;
+      return state.categories.find(c => 
+        c._id === id || 
+        String(c._id) === String(id) || 
+        c.id === id || 
+        String(c.id) === String(id) ||
+        (c.name && c.name.toLowerCase() === String(id).toLowerCase()) ||
+        c.slug === id
+      );
     },
     getCompanyById: (state) => (id) => {
-      return state.companies.find(c => c.id === Number(id) || c._id === id || c.id === id);
+      if (!id) return null;
+      return state.companies.find(c => 
+        c._id === id || 
+        String(c._id) === String(id) || 
+        c.id === id || 
+        String(c.id) === String(id) ||
+        (c.name && c.name.toLowerCase() === String(id).toLowerCase()) ||
+        (c.code && c.code.toLowerCase() === String(id).toLowerCase())
+      );
     },
     getPrice: (state) => (commonCode, companyId) => {
-      const match = state.companyPrices.find(
-        p => p.commonCode === commonCode && (Number(p.companyId) === Number(companyId) || p.companyId === companyId)
+      if (!companyId) return null;
+      const comp = state.companies.find(c => 
+        c._id === companyId || 
+        String(c._id) === String(companyId) || 
+        c.id === companyId || 
+        String(c.id) === String(companyId) ||
+        (c.name && c.name.toLowerCase() === String(companyId).toLowerCase())
       );
-      if (match) return match.price;
+      const cId = comp?._id || comp?.id || companyId;
+      const cAltId = comp?.id;
+      const cName = comp?.name;
+
+      const match = state.companyPrices.find(
+        p => p.commonCode === commonCode && (
+          p.companyId === cId || 
+          String(p.companyId) === String(cId) ||
+          (cAltId && (p.companyId === cAltId || String(p.companyId) === String(cAltId))) ||
+          (cName && p.companyId === cName)
+        )
+      );
+      if (match && match.price !== undefined && match.price !== null) return match.price;
 
       const prod = state.products.find(p => p.commonCode === commonCode);
-      if (prod && prod.prices && prod.prices[companyId]) {
-        return prod.prices[companyId];
+      if (prod && prod.prices) {
+        if (prod.prices[cId] !== undefined && prod.prices[cId] !== null) return prod.prices[cId];
+        if (cAltId && prod.prices[cAltId] !== undefined && prod.prices[cAltId] !== null) return prod.prices[cAltId];
+        if (cName && prod.prices[cName] !== undefined && prod.prices[cName] !== null) return prod.prices[cName];
       }
       return null;
     },
@@ -38,24 +73,40 @@ export const useInventoryStore = defineStore('inventory', {
       const prod = state.products.find(p => p.commonCode === commonCode);
 
       state.companies.forEach(company => {
+        const cKey = company._id || company.id;
+        const cAltKey = company.id;
+        const cName = company.name;
+
         const item = state.companyPrices.find(
-          p => p.commonCode === commonCode && (Number(p.companyId) === Number(company.id) || p.companyId === company._id)
+          p => p.commonCode === commonCode && (
+            p.companyId === cKey || 
+            String(p.companyId) === String(cKey) ||
+            (cAltKey && (p.companyId === cAltKey || String(p.companyId) === String(cAltKey))) ||
+            (cName && p.companyId === cName)
+          )
         );
-        if (item) {
-          priceMap[company.id || company._id] = item.price;
-        } else if (prod && prod.prices && (prod.prices[company.id] || prod.prices[company._id])) {
-          priceMap[company.id || company._id] = prod.prices[company.id] || prod.prices[company._id];
-        } else {
-          priceMap[company.id || company._id] = null;
+
+        let price = null;
+        if (item && item.price !== undefined && item.price !== null) {
+          price = item.price;
+        } else if (prod && prod.prices) {
+          if (prod.prices[cKey] !== undefined && prod.prices[cKey] !== null) price = prod.prices[cKey];
+          else if (cAltKey && prod.prices[cAltKey] !== undefined && prod.prices[cAltKey] !== null) price = prod.prices[cAltKey];
+          else if (cName && prod.prices[cName] !== undefined && prod.prices[cName] !== null) price = prod.prices[cName];
         }
+
+        if (cKey) priceMap[cKey] = price;
+        if (cAltKey) priceMap[cAltKey] = price;
+        if (cName) priceMap[cName] = price;
       });
       return priceMap;
     },
     filteredProducts: (state) => {
       return state.products.filter(p => {
         const matchesCategory = state.selectedCategoryFilter === 'all' || 
-          Number(p.categoryId) === Number(state.selectedCategoryFilter) ||
-          p.categoryId === state.selectedCategoryFilter;
+          p.categoryId === state.selectedCategoryFilter ||
+          String(p.categoryId) === String(state.selectedCategoryFilter) ||
+          (p.categoryName && p.categoryName.toLowerCase() === String(state.selectedCategoryFilter).toLowerCase());
 
         const q = state.searchQuery.toLowerCase().trim();
         const matchesQuery = !q || 
@@ -141,9 +192,12 @@ export const useInventoryStore = defineStore('inventory', {
       const q = (query || '').toLowerCase().trim();
       return this.products.filter(prod => {
         if (categoryId && categoryId !== 'all') {
-          if (Number(prod.categoryId) !== Number(categoryId) && prod.categoryId !== categoryId) {
-            return false;
-          }
+          const cat = this.getCategoryById(categoryId);
+          const catMatch = prod.categoryId === categoryId || 
+            String(prod.categoryId) === String(categoryId) ||
+            (cat && (prod.categoryId === cat._id || prod.categoryId === cat.id)) ||
+            (cat && prod.categoryName && prod.categoryName.toLowerCase() === cat.name.toLowerCase());
+          if (!catMatch) return false;
         }
 
         const matchesText = !q || 
@@ -156,22 +210,28 @@ export const useInventoryStore = defineStore('inventory', {
       }).map(prod => {
         const prices = this.getPricesForCode(prod.commonCode);
         const category = this.getCategoryById(prod.categoryId);
-        const currentCompanyPrice = companyId ? prices[companyId] : null;
+        const currentCompanyPrice = companyId 
+          ? (prices[companyId] !== undefined && prices[companyId] !== null 
+              ? prices[companyId] 
+              : this.getPrice(prod.commonCode, companyId))
+          : null;
 
         return {
           ...prod,
-          categoryName: category?.name || 'General',
+          categoryName: category?.name || prod.categoryName || 'General',
           prices,
           currentCompanyPrice,
-          isAvailableInSelectedCompany: currentCompanyPrice !== null && currentCompanyPrice > 0
+          isAvailableInSelectedCompany: currentCompanyPrice !== null && Number(currentCompanyPrice) > 0
         };
       });
     },
 
     // 1. PRODUCTS: ADD / EDIT / DELETE (Pinia state + MongoDB Atlas)
     async saveProduct(productData, pricesByCompany = {}) {
+      const cat = this.getCategoryById(productData.categoryId);
       const payload = {
         ...productData,
+        categoryName: cat?.name || productData.categoryName || 'General',
         prices: pricesByCompany
       };
 

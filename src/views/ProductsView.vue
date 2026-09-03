@@ -73,11 +73,11 @@
         </button>
         <button
           v-for="cat in inventoryStore.categories"
-          :key="cat.id"
-          @click="inventoryStore.selectedCategoryFilter = cat.id"
+          :key="cat._id || cat.id"
+          @click="inventoryStore.selectedCategoryFilter = (cat._id || cat.id)"
           :class="[
             'rounded-xl px-3 py-1.5 text-xs font-bold transition-all',
-            inventoryStore.selectedCategoryFilter === cat.id
+            inventoryStore.selectedCategoryFilter === (cat._id || cat.id)
               ? 'bg-indigo-600 text-white shadow-sm'
               : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
           ]"
@@ -248,7 +248,7 @@
                 required
                 class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs text-slate-900 focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               >
-                <option v-for="cat in inventoryStore.categories" :key="cat.id" :value="cat.id">
+                <option v-for="cat in inventoryStore.categories" :key="cat._id || cat.id" :value="cat._id || cat.id">
                   {{ cat.name }}
                 </option>
               </select>
@@ -451,8 +451,15 @@ const editProduct = (product) => {
   editForm._id = product._id;
   editForm.commonCode = product.commonCode;
   editForm.name = product.name;
-  editForm.categoryId = product.categoryId;
-  editForm.description = product.description;
+
+  const matchedCat = inventoryStore.categories.find(c => 
+    c._id === product.categoryId || 
+    c.id === product.categoryId || 
+    c.name === product.categoryId ||
+    (product.categoryName && c.name.toLowerCase() === product.categoryName.toLowerCase())
+  );
+  editForm.categoryId = matchedCat ? (matchedCat._id || matchedCat.id) : (product.categoryId || (inventoryStore.categories[0]?._id || inventoryStore.categories[0]?.id) || '');
+  editForm.description = product.description || '';
   editForm.unit = product.unit || 'pcs';
   editForm.stockQty = product.stockQty || 0;
 
@@ -465,7 +472,13 @@ const editProduct = (product) => {
 
 const saveProduct = async () => {
   try {
-    await inventoryStore.saveProduct({ ...editForm }, editPrices);
+    const cat = inventoryStore.getCategoryById(editForm.categoryId);
+    const categoryName = cat?.name || 'General';
+    await inventoryStore.saveProduct({ 
+      ...editForm,
+      categoryId: editForm.categoryId,
+      categoryName
+    }, editPrices);
     isModalOpen.value = false;
     toastRef.value?.showToast(`Saved product ${editForm.name} successfully`, 'success');
   } catch (err) {

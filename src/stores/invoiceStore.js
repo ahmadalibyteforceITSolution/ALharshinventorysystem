@@ -139,7 +139,7 @@ export const useInvoiceStore = defineStore('invoice', {
         customerName: '',
         customerContact: '',
         customerAddress: '',
-        companyId: defaultCompany?.id || null,
+        companyId: defaultCompany?._id || defaultCompany?.id || null,
         companyName: defaultCompany?.name || 'Default Brand',
         applyCompanyDefaultDiscount: true,
         items: [],
@@ -245,8 +245,9 @@ export const useInvoiceStore = defineStore('invoice', {
       const oldName = oldCompany?.name || 'Previous Company';
       const targetName = targetCompany.name;
       const targetDefaultDiscount = Number(targetCompany.defaultDiscount || 0);
+      const targetId = targetCompany._id || targetCompany.id;
 
-      this.activeInvoice.companyId = targetCompany.id;
+      this.activeInvoice.companyId = targetId;
       this.activeInvoice.companyName = targetName;
 
       let updatedCount = 0;
@@ -254,7 +255,7 @@ export const useInvoiceStore = defineStore('invoice', {
 
       // Update every line item based on the common product code
       this.activeInvoice.items = this.activeInvoice.items.map(item => {
-        const newPrice = inventoryStore.getPrice(item.commonCode, targetCompany.id);
+        const newPrice = inventoryStore.getPrice(item.commonCode, targetId);
         const isAvailable = newPrice !== null && newPrice > 0;
 
         // Apply new company default discount unless user had manually customized it

@@ -562,7 +562,7 @@ const toggleType = () => {
 };
 
 const handleCompanyChange = (newCompanyId) => {
-  invoiceStore.switchCompany(Number(newCompanyId));
+  invoiceStore.switchCompany(newCompanyId);
 };
 
 const handleAddProduct = (product) => {

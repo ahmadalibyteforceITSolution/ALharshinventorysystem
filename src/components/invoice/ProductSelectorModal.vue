@@ -81,7 +81,7 @@
               <span class="rounded bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">
                 {{ product.categoryName }}
               </span>
-              <span v-if="!product.isAvailableInSelectedCompany" class="rounded bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700 border border-amber-200">
+              <span v-if="!isProductAvailable(product)" class="rounded bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700 border border-amber-200">
                 Unavailable in {{ activeCompanyName }}
               </span>
             </div>
@@ -100,14 +100,14 @@
                 :key="company._id || company.id"
                 :class="[
                   'rounded px-2 py-0.5 text-[11px] font-medium border flex items-center gap-1',
-                  (company._id || company.id) === activeCompanyId 
+                  isCurrentCompany(company)
                     ? 'border-indigo-500 bg-indigo-50/80 font-bold text-indigo-900 dark:bg-indigo-950/70 dark:text-indigo-200' 
                     : 'border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
                 ]"
               >
                 <span>{{ company.name }}:</span>
-                <span v-if="product.prices[company._id || company.id]" class="font-bold">
-                  Rs. {{ Number(product.prices[company._id || company.id]).toLocaleString() }}
+                <span v-if="getCompanyPrice(product, company)" class="font-bold">
+                  Rs. {{ Number(getCompanyPrice(product, company)).toLocaleString() }}
                 </span>
                 <span v-else class="italic text-rose-400">N/A</span>
               </div>
@@ -119,10 +119,10 @@
             <div class="text-right">
               <div class="text-xs text-slate-400 font-medium">{{ activeCompanyName }} Price:</div>
               <div 
-                v-if="product.isAvailableInSelectedCompany"
+                v-if="isProductAvailable(product)"
                 class="text-lg font-black text-slate-900 dark:text-white font-mono"
               >
-                Rs. {{ Number(product.currentCompanyPrice).toLocaleString() }}
+                Rs. {{ Number(getProductActivePrice(product)).toLocaleString() }}
               </div>
               <div v-else class="text-xs font-bold text-rose-500">
                 Not Sold By Brand
@@ -131,10 +131,10 @@
 
             <button
               @click="selectProduct(product)"
-              :disabled="!product.isAvailableInSelectedCompany"
+              :disabled="!isProductAvailable(product)"
               :class="[
                 'inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-white shadow transition-all',
-                product.isAvailableInSelectedCompany 
+                isProductAvailable(product) 
                   ? 'bg-indigo-600 hover:bg-indigo-500 hover:shadow-indigo-500/25 active:scale-95' 
                   : 'bg-slate-300 cursor-not-allowed text-slate-500 dark:bg-slate-800'
               ]"
@@ -220,7 +220,48 @@ watch(() => [searchTerm.value, selectedCategory.value], () => {
   currentPage.value = 1;
 });
 
+const isCurrentCompany = (company) => {
+  if (!props.activeCompanyId) return false;
+  return (
+    company._id === props.activeCompanyId ||
+    String(company._id) === String(props.activeCompanyId) ||
+    company.id === props.activeCompanyId ||
+    String(company.id) === String(props.activeCompanyId) ||
+    (company.name && company.name.toLowerCase() === String(props.activeCompanyName || props.activeCompanyId).toLowerCase())
+  );
+};
+
+const getCompanyPrice = (product, company) => {
+  const cId = company._id || company.id;
+  if (product.prices && product.prices[cId] !== undefined) return product.prices[cId];
+  if (company.id && product.prices && product.prices[company.id] !== undefined) return product.prices[company.id];
+  if (company.name && product.prices && product.prices[company.name] !== undefined) return product.prices[company.name];
+  return inventoryStore.getPrice(product.commonCode, cId);
+};
+
+const getProductActivePrice = (product) => {
+  if (product.currentCompanyPrice !== null && product.currentCompanyPrice !== undefined && Number(product.currentCompanyPrice) > 0) {
+    return product.currentCompanyPrice;
+  }
+  const company = inventoryStore.companies.find(c => isCurrentCompany(c));
+  if (company) {
+    const p = getCompanyPrice(product, company);
+    if (p !== null && p !== undefined && Number(p) > 0) return p;
+  }
+  return null;
+};
+
+const isProductAvailable = (product) => {
+  const price = getProductActivePrice(product);
+  return price !== null && Number(price) > 0;
+};
+
 const selectProduct = (product) => {
-  emit('add-item', product);
+  const activePrice = getProductActivePrice(product);
+  emit('add-item', {
+    ...product,
+    currentCompanyPrice: activePrice,
+    isAvailableInSelectedCompany: activePrice !== null && Number(activePrice) > 0
+  });
 };
 </script>
