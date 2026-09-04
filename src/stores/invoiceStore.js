@@ -22,8 +22,8 @@ export const useInvoiceStore = defineStore('invoice', {
       applyCompanyDefaultDiscount: true,
       items: [],
       taxPercent: 0,
-      notes: 'Thank you for your business. Please contact us for any technical inquiries.',
-      terms: '1. Prices are valid for 15 days.\n2. Goods once sold cannot be returned without original receipt.\n3. Brand warranties are subject to manufacturer terms.',
+      notes: 'Thank you for your business. Bank Alfalah A/C: 05521010566693 (Al-Harsh System).',
+      terms: '1. Prices are valid for 15 days.\n2. Goods once sold cannot be returned without original receipt.\n3. Brand warranties are subject to manufacturer terms.\n4. Payment to Bank Alfalah A/C: 05521010566693 (Al-Harsh System).',
       status: 'pending' // 'pending', 'paid', 'sent', 'draft'
     },
 

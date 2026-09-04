@@ -66,6 +66,7 @@
               <p class="font-medium">Main Market, Wholesale Building Sector</p>
               <p>Email: billing@alharshsystem.com | Tel: +92 300 0000000</p>
               <p>NTN: 8943210-9 | GST Registered</p>
+              <p class="font-bold text-slate-800">Bank Alfalah: <span class="font-mono text-indigo-700">05521010566693</span> (Al-Harsh System)</p>
             </div>
           </div>
 
@@ -167,6 +168,10 @@
             <div>
               <span class="font-bold text-slate-800 block mb-1">Terms & Conditions:</span>
               <p class="whitespace-pre-line text-slate-500">{{ invoice.terms }}</p>
+            </div>
+            <div class="rounded-xl bg-indigo-50/70 p-3 border border-indigo-100 text-[11px] text-indigo-950">
+              <span class="font-bold block mb-0.5">Bank Payment Account:</span>
+              <span>Bank: <strong>Bank Alfalah</strong> | A/C: <strong class="font-mono text-indigo-700">05521010566693</strong> | Title: <strong>Al-Harsh System</strong></span>
             </div>
           </div>
 
@@ -280,6 +285,7 @@ const shareWhatsApp = () => {
     itemsText + `%0A` +
     `--------------------------%0A` +
     `*Grand Total: Rs. ${Number(inv.grandTotal).toLocaleString()}*%0A` +
+    `*Bank Alfalah A/C:* 05521010566693 (Al-Harsh System)%0A` +
     `Thank you for choosing Al-Harsh!`;
 
   window.open(`https://wa.me/?text=${text}`, '_blank');

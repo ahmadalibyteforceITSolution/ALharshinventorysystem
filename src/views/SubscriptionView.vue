@@ -268,31 +268,61 @@
           <h3 class="text-xl font-bold text-slate-900 dark:text-white">Custom Brand Capacity Plan</h3>
           <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-lg">
             Need a specific number of brands? Customize your capacity to fit your exact warehouse and brand agreements.
+            Flat rate of PKR 500 per brand (Save 20% on yearly billing).
           </p>
         </div>
 
-        <div class="w-full md:w-80 bg-slate-50 dark:bg-slate-800/60 p-5 rounded-2xl border border-slate-200 dark:border-slate-700">
+        <div class="w-full md:w-88 bg-slate-50 dark:bg-slate-800/60 p-5 rounded-2xl border border-slate-200 dark:border-slate-700">
           <div class="flex justify-between items-center mb-2">
-            <span class="text-xs text-slate-500">Brands Needed:</span>
-            <span class="text-lg font-black text-indigo-600 dark:text-indigo-400">{{ customBrandCount }} Brands</span>
+            <span class="text-xs font-bold text-slate-600 dark:text-slate-300">Brands Needed:</span>
+            <div class="flex items-center gap-2">
+              <button 
+                type="button" 
+                @click="customBrandCount = Math.max(2, customBrandCount - 1)" 
+                :disabled="customBrandCount <= 2"
+                class="h-6 w-6 rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 flex items-center justify-center text-xs font-bold disabled:opacity-30 transition-colors"
+                title="Decrease brand capacity"
+              >
+                <Minus class="h-3 w-3" />
+              </button>
+              <span class="text-lg font-black text-indigo-600 dark:text-indigo-400 min-w-[70px] text-center">
+                {{ customBrandCount }} Brands
+              </span>
+              <button 
+                type="button" 
+                @click="customBrandCount = Math.min(10, customBrandCount + 1)" 
+                :disabled="customBrandCount >= 10"
+                class="h-6 w-6 rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 flex items-center justify-center text-xs font-bold disabled:opacity-30 transition-colors"
+                title="Increase brand capacity"
+              >
+                <Plus class="h-3 w-3" />
+              </button>
+            </div>
           </div>
           <input
             type="range"
             min="2"
-            max="30"
+            max="10"
             v-model.number="customBrandCount"
             class="w-full accent-indigo-600 h-2 bg-slate-200 dark:bg-slate-700 rounded-lg cursor-pointer"
           />
-          <div class="flex justify-between text-[10px] text-slate-400 mt-1">
-            <span>2 Brands</span>
-            <span>30 Brands</span>
+          <div class="flex justify-between text-[10px] text-slate-400 mt-1 font-semibold">
+            <span>2 Brands (Min)</span>
+            <span>10 Brands (Enterprise Equiv.)</span>
+          </div>
+
+          <div v-if="customBrandCount === 10" class="mt-2 text-[10px] text-purple-600 dark:text-purple-400 font-bold bg-purple-50 dark:bg-purple-950/50 px-2.5 py-1 rounded-lg">
+            Tip: 10 brands equals Enterprise price, which includes Unlimited Brands!
           </div>
 
           <div class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
             <div>
               <div class="text-[10px] text-slate-400">Price:</div>
               <div class="text-sm font-black text-slate-900 dark:text-white">
-                PKR {{ (customBrandCount * 500).toLocaleString() }}/mo
+                PKR {{ customPriceFormatted }}
+              </div>
+              <div v-if="billingCycle === 'yearly'" class="text-[10px] text-emerald-600 font-bold">
+                Save 20% • PKR {{ (getCustomMonthlyPrice * 0.8).toLocaleString() }}/mo effective
               </div>
             </div>
             <button
@@ -337,7 +367,9 @@
             </div>
             <div class="flex justify-between py-1 text-slate-600 dark:text-slate-400">
               <span>Billing Cycle:</span>
-              <span class="font-bold text-slate-900 dark:text-white capitalize">{{ billingCycle }}</span>
+              <span class="font-bold text-slate-900 dark:text-white capitalize">
+                {{ billingCycle }} {{ billingCycle === 'yearly' ? '(Save 20%)' : '' }}
+              </span>
             </div>
             <div class="flex justify-between py-2 border-t border-indigo-200 dark:border-indigo-800/60 text-sm font-black text-slate-900 dark:text-white mt-1">
               <span>Total Payable:</span>
@@ -355,7 +387,7 @@
                 :class="[
                   'rounded-xl border p-3 text-left transition-all text-xs font-bold',
                   paymentMethod === 'bank'
-                    ? 'border-indigo-600 bg-indigo-50 text-indigo-900 dark:bg-indigo-950/70 dark:text-white'
+                    ? 'border-indigo-600 bg-indigo-50 text-indigo-900 dark:bg-indigo-950/70 dark:text-white ring-2 ring-indigo-500/20'
                     : 'border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
                 ]"
               >
@@ -368,13 +400,94 @@
                 :class="[
                   'rounded-xl border p-3 text-left transition-all text-xs font-bold',
                   paymentMethod === 'jazzcash'
-                    ? 'border-indigo-600 bg-indigo-50 text-indigo-900 dark:bg-indigo-950/70 dark:text-white'
+                    ? 'border-indigo-600 bg-indigo-50 text-indigo-900 dark:bg-indigo-950/70 dark:text-white ring-2 ring-indigo-500/20'
                     : 'border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
                 ]"
               >
                 <Smartphone class="h-4 w-4 mb-1 text-rose-500" />
                 <div>JazzCash / EasyPaisa</div>
               </button>
+            </div>
+          </div>
+
+          <!-- Bank Alfalah Payment Details Card -->
+          <div 
+            v-if="paymentMethod === 'bank'" 
+            class="rounded-2xl border-2 border-indigo-500/30 bg-gradient-to-br from-indigo-50/90 to-sky-50/90 dark:from-indigo-950/50 dark:to-slate-900 p-4 space-y-3"
+          >
+            <div class="flex items-center justify-between border-b border-indigo-200/60 dark:border-indigo-900/60 pb-2.5">
+              <div class="flex items-center gap-2">
+                <div class="h-8 w-8 rounded-lg bg-red-600 text-white flex items-center justify-center font-black text-xs shadow-sm">
+                  BA
+                </div>
+                <div>
+                  <div class="font-extrabold text-slate-900 dark:text-white text-xs">Bank Alfalah</div>
+                  <div class="text-[10px] text-slate-500">Official Deposit Account</div>
+                </div>
+              </div>
+              <span class="rounded-full bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
+                1Link / Raast Active
+              </span>
+            </div>
+
+            <div class="space-y-2 text-xs">
+              <div class="flex items-center justify-between bg-white dark:bg-slate-800/80 p-2.5 rounded-xl border border-indigo-100 dark:border-indigo-900">
+                <div>
+                  <div class="text-[10px] text-slate-400 font-semibold uppercase">Account Number</div>
+                  <div class="font-mono font-black text-base text-indigo-700 dark:text-indigo-300 tracking-wider">
+                    05521010566693
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  @click="copyToClipboard('05521010566693', 'Account number 05521010566693 copied!')"
+                  class="inline-flex items-center gap-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/60 dark:hover:bg-indigo-900 px-2.5 py-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-300 transition-colors"
+                >
+                  <Copy class="h-3.5 w-3.5" />
+                  <span>{{ copiedText === '05521010566693' ? 'Copied!' : 'Copy' }}</span>
+                </button>
+              </div>
+
+              <div class="flex justify-between py-1 text-slate-600 dark:text-slate-300 text-[11px]">
+                <span class="text-slate-400">Account Title:</span>
+                <span class="font-bold text-slate-900 dark:text-white">Al-Harsh System</span>
+              </div>
+              <div class="flex justify-between py-1 text-slate-600 dark:text-slate-300 text-[11px]">
+                <span class="text-slate-400">Transfer Methods:</span>
+                <span class="font-medium text-slate-700 dark:text-slate-300">Alfa App, ATM, Any Bank App (IBFT / Raast)</span>
+              </div>
+            </div>
+
+            <p class="text-[10px] text-indigo-950 dark:text-indigo-200 bg-white/80 dark:bg-slate-800/80 p-2 rounded-lg border border-indigo-100 dark:border-indigo-900/50">
+              💡 Transfer <strong>PKR {{ getPlanPrice(selectedPlan) }}</strong> to Bank Alfalah account <strong>05521010566693</strong>. Once completed, click below to activate instantly.
+            </p>
+          </div>
+
+          <!-- JazzCash / EasyPaisa Details Card -->
+          <div 
+            v-else 
+            class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 p-4 space-y-2 text-xs"
+          >
+            <div class="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
+              <div class="font-bold text-slate-900 dark:text-white">JazzCash / EasyPaisa via Raast</div>
+              <span class="text-[10px] text-rose-500 font-bold">Mobile Wallet</span>
+            </div>
+            <div class="flex items-center justify-between bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
+              <div>
+                <div class="text-[10px] text-slate-400">Send to Bank Alfalah via Raast / IBFT</div>
+                <div class="font-mono font-bold text-sm text-slate-900 dark:text-white">05521010566693</div>
+              </div>
+              <button
+                type="button"
+                @click="copyToClipboard('05521010566693', 'Account 05521010566693 copied!')"
+                class="inline-flex items-center gap-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-2 py-1 text-xs font-bold text-slate-700 dark:text-slate-200"
+              >
+                <Copy class="h-3.5 w-3.5" />
+                <span>{{ copiedText === '05521010566693' ? 'Copied!' : 'Copy' }}</span>
+              </button>
+            </div>
+            <div class="text-[10px] text-slate-500">
+              Select <strong>Bank Alfalah</strong> in your JazzCash or EasyPaisa app and transfer <strong>PKR {{ getPlanPrice(selectedPlan) }}</strong> to account <strong>05521010566693</strong>.
             </div>
           </div>
 
@@ -396,7 +509,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import AppToast from '@/components/common/AppToast.vue';
@@ -408,7 +521,10 @@ import {
   Sliders, 
   Landmark, 
   Smartphone, 
-  Loader2 
+  Loader2,
+  Copy,
+  Plus,
+  Minus
 } from 'lucide-vue-next';
 
 const authStore = useAuthStore();
@@ -421,13 +537,49 @@ const isCheckoutOpen = ref(false);
 const selectedPlan = ref('pro');
 const paymentMethod = ref('bank');
 const isUpgrading = ref(false);
+const copiedText = ref('');
+
+// Custom pricing calculations
+const getCustomMonthlyPrice = computed(() => {
+  const count = Math.min(Math.max(customBrandCount.value, 2), 10);
+  return count * 500;
+});
+
+const getCustomYearlyPrice = computed(() => {
+  // 20% discount on 12 months = 12 * 0.8 = 9.6 months
+  return getCustomMonthlyPrice.value * 12 * 0.8;
+});
+
+const customPriceFormatted = computed(() => {
+  if (billingCycle.value === 'yearly') {
+    return `${getCustomYearlyPrice.value.toLocaleString()} / year`;
+  }
+  return `${getCustomMonthlyPrice.value.toLocaleString()} / month`;
+});
 
 const getPlanPrice = (plan) => {
   if (plan === 'starter') return '0';
   if (plan === 'pro') return billingCycle.value === 'yearly' ? '24,000' : '2,500';
   if (plan === 'enterprise') return billingCycle.value === 'yearly' ? '48,000' : '5,000';
-  if (plan === 'custom') return (customBrandCount.value * 500).toLocaleString();
+  if (plan === 'custom') {
+    return billingCycle.value === 'yearly' 
+      ? getCustomYearlyPrice.value.toLocaleString() 
+      : getCustomMonthlyPrice.value.toLocaleString();
+  }
   return '0';
+};
+
+const copyToClipboard = async (text, msg = 'Copied to clipboard!') => {
+  try {
+    await navigator.clipboard.writeText(text);
+    copiedText.value = text;
+    toastRef.value?.showToast(msg, 'success');
+    setTimeout(() => {
+      if (copiedText.value === text) copiedText.value = '';
+    }, 2500);
+  } catch (_) {
+    toastRef.value?.showToast(`Account: ${text}`, 'info');
+  }
 };
 
 const openCheckout = (plan) => {

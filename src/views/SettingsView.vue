@@ -121,7 +121,35 @@
       </div>
     </div>
 
-    <!-- 3. System Reset & Re-Seed to PDF Specifications -->
+    <!-- 3. Business Bank Account & Billing Details -->
+    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div class="flex items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
+        <div class="rounded-xl bg-indigo-50 p-2.5 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400">
+          <Landmark class="h-6 w-6" />
+        </div>
+        <div>
+          <h3 class="font-extrabold text-slate-900 dark:text-white text-base">Business Bank Account</h3>
+          <p class="text-xs text-slate-500">Official bank details used for invoices, quotations, and subscription billing</p>
+        </div>
+      </div>
+
+      <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+        <div class="rounded-xl border border-slate-200 p-3.5 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
+          <span class="text-slate-400 block text-[10px] uppercase font-bold">Bank Name</span>
+          <span class="font-black text-slate-900 dark:text-white text-sm">Bank Alfalah</span>
+        </div>
+        <div class="rounded-xl border border-indigo-200 p-3.5 dark:border-indigo-900/60 bg-indigo-50/30 dark:bg-indigo-950/20">
+          <span class="text-indigo-600 dark:text-indigo-400 block text-[10px] uppercase font-bold">Account Number</span>
+          <span class="font-mono font-black text-indigo-700 dark:text-indigo-300 text-base">05521010566693</span>
+        </div>
+        <div class="rounded-xl border border-slate-200 p-3.5 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
+          <span class="text-slate-400 block text-[10px] uppercase font-bold">Account Title</span>
+          <span class="font-black text-slate-900 dark:text-white text-sm">Al-Harsh System</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. System Reset & Re-Seed to PDF Specifications -->
     <div class="rounded-2xl border border-rose-200 bg-white p-6 shadow-sm dark:border-rose-950 dark:bg-slate-900">
       <div class="flex items-start justify-between gap-4">
         <div>
@@ -147,7 +175,7 @@
 import { ref } from 'vue';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { api } from '@/services/api';
-import { Database, Download, Upload, FileSpreadsheet } from 'lucide-vue-next';
+import { Database, Download, Upload, FileSpreadsheet, Landmark } from 'lucide-vue-next';
 
 const inventoryStore = useInventoryStore();
 const isChecking = ref(false);
